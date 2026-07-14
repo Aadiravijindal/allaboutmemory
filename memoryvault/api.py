@@ -26,6 +26,10 @@ from .insights import Insights
 from .rescue import RescueTool
 from .sync import SyncEngine
 from .connectors import default_registry
+from .connectors_live import register_live, live_systems
+from .config import CONFIG
+from .billing import Meter, StripeBilling
+from .durable import DurableSync
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,8 +56,19 @@ if not os.path.exists(_demo_key_file):
 with open(_demo_key_file) as f:
     DEMO_KEY = f.read().strip()
 
-app = FastAPI(title="MemoryVault API", version="0.2.0",
+app = FastAPI(title="MemoryVault API", version="0.3.0",
               docs_url="/api/docs", openapi_url="/api/openapi.json")
+
+meter = Meter(DATA_DIR)
+billing = StripeBilling()
+
+
+def build_registry():
+    """Demo FileConnectors, overlaid with any live connectors whose keys
+    are pasted in .env. Paste a key -> that platform goes live here."""
+    reg = default_registry(os.path.abspath(FIXTURES))
+    register_live(reg)
+    return reg
 
 
 # ------------------------------------------------------------------ auth
@@ -198,8 +213,8 @@ async def reject(mid: str, key=Depends(require("approve"))):
 @app.post("/api/rescue")
 async def rescue(body: RescueIn, key=Depends(require("connect"))):
     v = cp.vault_for(key.org)
-    reg = default_registry(os.path.abspath(FIXTURES))
-    report = RescueTool(v, reg).run(body.systems, clean=body.clean)
+    report = RescueTool(v, build_registry()).run(body.systems, clean=body.clean)
+    meter.record(key.org, "rescue", meta={"systems": body.systems})
     cp.audit(key.org, key.name or key.role, "rescue",
              {"systems": body.systems, "recovered": report["total_recovered"]})
     return report
@@ -210,18 +225,18 @@ async def rescue_report(body: RescueIn, key=Depends(require("connect"))):
     """Run a rescue and return the verification report as printable HTML."""
     from .report import render_html
     v = cp.vault_for(key.org)
-    reg = default_registry(os.path.abspath(FIXTURES))
-    report = RescueTool(v, reg).run(body.systems, clean=body.clean)
+    report = RescueTool(v, build_registry()).run(body.systems, clean=body.clean)
     return render_html(report)
 
 
 @app.post("/api/sync")
 async def sync(key=Depends(require("connect"))):
     v = cp.vault_for(key.org)
-    reg = default_registry(os.path.abspath(FIXTURES))
+    reg = build_registry()
     for s in reg.available():
         try:
             reg.connect(s)
+            meter.record(key.org, "connector_active", meta={"system": s})
         except Exception:
             pass
     return SyncEngine(v, reg).sync_once()
@@ -259,6 +274,48 @@ async def verify_chain(key=Depends(require("read"))):
 @app.get("/api/counts")
 async def counts(key=Depends(require("read"))):
     return cp.vault_for(key.org).counts()
+
+
+# ---- setup / status (what's activated by your keys) ------------------
+@app.get("/api/setup")
+async def setup_status(key=Depends(require("admin"))):
+    act = CONFIG.activated()
+    act["live_connectors"] = live_systems()
+    act["billing_ledger"] = meter.summary(key.org)
+    return act
+
+
+# ---- billing ----------------------------------------------------------
+@app.get("/api/billing/usage")
+async def billing_usage(key=Depends(require("admin"))):
+    return meter.summary(key.org)
+
+
+@app.post("/api/billing/webhook")
+async def billing_webhook(request: Request):
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = billing.verify_webhook(payload, sig)
+        if event:
+            log.info("stripe event: %s", event.get("type"))
+        return {"received": True}
+    except Exception as e:
+        raise HTTPException(400, f"webhook error: {e}")
+
+
+# ---- durable sync (retries / dead-letter) -----------------------------
+@app.post("/api/durable/enqueue")
+async def durable_enqueue(kind: str = "full", key=Depends(require("connect"))):
+    ds = DurableSync(cp.vault_for(key.org), build_registry())
+    ds.enqueue(kind)
+    return ds.run_due()
+
+
+@app.get("/api/durable/stats")
+async def durable_stats(key=Depends(require("read"))):
+    ds = DurableSync(cp.vault_for(key.org), build_registry())
+    return {"jobs": ds.stats(), "deadletters": ds.deadletters()}
 
 
 # ---- serve the Control Room SPA + expose demo key for the UI ----------

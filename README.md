@@ -77,10 +77,38 @@ Every feature from the product spec maps to real code — see
 | Open interchange spec (CMIF) | ✅ | `docs/SPEC.md` |
 | SOC 2, pen test, live vendor creds, BYOC apply | 🧑‍💼 needs you | `docs/PRODUCTION.md` |
 
-See [`docs/PRODUCTION.md`](docs/PRODUCTION.md) for the honest done / wired /
-needs-you breakdown and the path to the first paid pilot,
-[`docs/SECURITY.md`](docs/SECURITY.md) for the security model, and
-[`docs/BUSINESS.md`](docs/BUSINESS.md) for market, moat, and expansion plan.
+### Going live is "paste keys"
+
+Everything that can be code is done and **config-driven**. Copy
+`.env.example` → `.env`, paste credentials, and each integration activates
+automatically — no code change:
+
+```bash
+cp .env.example .env       # paste keys
+python setup_check.py       # shows exactly what activated
+```
+
+| Paste this | Activates |
+|---|---|
+| `DATABASE_URL` | Postgres + pgvector backend |
+| `MV_KMS_KEY_ID` | customer-KMS encryption |
+| `MEM0_API_KEY` / `SALESFORCE_TOKEN` / … | that live connector |
+| `OPENAI_API_KEY` | real embeddings |
+| `STRIPE_SECRET_KEY` | real billing |
+
+Deploy into your own cloud with one command (`deploy/terraform` or
+`deploy/helm`). Durable sync (retries + dead-letter) is built in.
+
+See **[`GO_LIVE.md`](GO_LIVE.md)** for the full paste-and-run checklist,
+[`docs/PRODUCTION.md`](docs/PRODUCTION.md) for the done/wired/needs-you
+breakdown, [`docs/SECURITY.md`](docs/SECURITY.md) for the security model,
+`compliance/` for the SOC 2 control mapping, `legal/` for DPA/ToS/Data-Act
+templates, and [`docs/BUSINESS.md`](docs/BUSINESS.md) for market, moat, and
+the expansion plan.
+
+**The only things left are the human half** — the SOC 2 *audit*, a pen test,
+a lawyer signing the DPA, and your first customers. We've shipped every
+artifact those need (`compliance/`, `legal/`); only the signature remains.
 
 ---
 

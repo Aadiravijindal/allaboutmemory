@@ -1,0 +1,34 @@
+# Helm values — deploy MemoryVault into any Kubernetes cluster (BYOC).
+#   helm install memoryvault ./deploy/helm/memoryvault \
+#     --set image.repository=ghcr.io/you/memoryvault \
+#     --set env.DATABASE_URL=postgres://... \
+#     --set env.MV_KMS_KEY_ID=arn:aws:kms:...
+image:
+  repository: ghcr.io/you/memoryvault
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8000
+
+# Paste production config here (or use a Secret). Blank => demo defaults.
+env:
+  DATABASE_URL: ""
+  MV_ENCRYPT: "1"
+  MV_KMS_PROVIDER: "aws"
+  MV_KMS_KEY_ID: ""
+  MV_EMBEDDINGS: "openai"
+
+# connector + billing secrets belong in a Kubernetes Secret, not here
+existingSecret: "memoryvault-secrets"
+
+resources:
+  requests: { cpu: 250m, memory: 512Mi }
+  limits:   { cpu: "1",  memory: 1Gi }
+
+persistence:
+  enabled: true
+  size: 10Gi
