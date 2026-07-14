@@ -168,15 +168,23 @@ class Vault:
             "SELECT * FROM memories WHERE lower(subject)=? AND"
             " lower(attribute)=? AND status=?",
             (key[0], key[1], MemoryStatus.ACTIVE.value)).fetchall()
+        from .entities import conflict_strategy
+        strategy = conflict_strategy(incoming.attribute)
         for row in rows:
             existing = self._row_to_mem(row)
             if existing.value.strip().lower() == incoming.value.strip().lower():
                 continue  # same claim, not a fight — dedupe handles it
-            # Newest wins (mutable facts update); trust breaks same-time ties.
-            # Loser goes to history, never lost. Low-trust sources are gated
-            # earlier by the Approval Room, so anything active here is eligible.
-            inc_score = (incoming.occurred_at, incoming.trust)
-            ex_score = (existing.occurred_at, existing.trust)
+            # Per-attribute policy (Feature 3.2, upgraded): mutable facts
+            # (plan, address, status) use recency; identity/money facts
+            # (ssn, invoice routing) trust the verified source. Loser goes to
+            # history, never lost. Low-trust sources are gated earlier by the
+            # Approval Room, so anything active here is eligible to win.
+            if strategy == "trust":
+                inc_score = (incoming.trust, incoming.occurred_at)
+                ex_score = (existing.trust, existing.occurred_at)
+            else:  # recency
+                inc_score = (incoming.occurred_at, incoming.trust)
+                ex_score = (existing.occurred_at, existing.trust)
             if inc_score >= ex_score:
                 existing.status = MemoryStatus.SUPERSEDED.value
                 incoming.supersedes = existing.id

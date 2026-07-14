@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MemoryVault — Control Room</title>
+<style>
+:root{
+  --bg:#0a0c16; --panel:#12152a; --panel2:#171b34; --line:#242a4a;
+  --ink:#eef0fb; --dim:#9aa3c7; --brand:#6b8afd; --brand2:#8b6bfd;
+  --ok:#4fd68a; --warn:#f0b64d; --bad:#f0607a; --chip:#222policy;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:radial-gradient(1200px 600px at 80% -10%,#1a1f42 0%,var(--bg) 55%);
+  color:var(--ink);min-height:100vh}
+a{color:var(--brand);text-decoration:none}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:22px;
+  padding:14px 26px;background:rgba(10,12,22,.82);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line)}
+.logo{font-weight:800;font-size:18px;letter-spacing:.2px;display:flex;gap:9px;align-items:center}
+.logo .dot{width:12px;height:12px;border-radius:50%;
+  background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 0 16px var(--brand)}
+nav{display:flex;gap:4px;margin-left:8px}
+nav button{background:transparent;border:0;color:var(--dim);padding:8px 14px;border-radius:9px;
+  cursor:pointer;font-weight:600;font-size:13px;transition:.15s}
+nav button:hover{color:var(--ink);background:var(--panel)}
+nav button.active{color:#fff;background:linear-gradient(135deg,rgba(107,138,253,.25),rgba(139,107,253,.25));
+  box-shadow:inset 0 0 0 1px var(--line)}
+.gauge{margin-left:auto;display:flex;align-items:center;gap:12px}
+.ring{--v:80;width:44px;height:44px;border-radius:50%;
+  background:conic-gradient(var(--ok) calc(var(--v)*1%),var(--line) 0);
+  display:grid;place-items:center;font-weight:800;font-size:12px}
+.ring::after{content:attr(data-g);width:34px;height:34px;border-radius:50%;
+  background:var(--bg);display:grid;place-items:center}
+.ring span{position:absolute}
+main{max-width:1180px;margin:0 auto;padding:26px}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:1.4fr 1fr}
+@media(max-width:900px){.g4,.g3,.g2{grid-template-columns:1fr 1fr}}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+  border-radius:16px;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.stat .k{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+.stat .v{font-size:30px;font-weight:800;margin-top:6px}
+.stat .s{color:var(--dim);font-size:12px;margin-top:2px}
+h1{font-size:22px;margin:2px 0 2px}
+.sub{color:var(--dim);margin:0 0 18px}
+h3{margin:2px 0 10px;font-size:15px}
+input,select{background:#0d1024;border:1px solid var(--line);color:var(--ink);
+  padding:11px 13px;border-radius:11px;font-size:14px;outline:none}
+input:focus{border-color:var(--brand)}
+.btn{background:linear-gradient(135deg,var(--brand),var(--brand2));border:0;color:#fff;
+  padding:10px 15px;border-radius:11px;font-weight:700;cursor:pointer;font-size:13px}
+.btn.ghost{background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
+.btn.red{background:linear-gradient(135deg,#e0556e,#a3324a)}
+.btn.sm{padding:6px 10px;font-size:12px;border-radius:9px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mem{border:1px solid var(--line);border-radius:13px;padding:14px 15px;margin:10px 0;background:#0f1226}
+.mem .c{font-size:15px}
+.meta{color:var(--dim);font-size:12px;margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{background:#1b2140;border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:11px;color:#c3caf0}
+.chip.ok{color:var(--ok)} .chip.warn{color:var(--warn)} .chip.bad{color:var(--bad)}
+.trust{height:6px;width:70px;border-radius:6px;background:var(--line);overflow:hidden;display:inline-block}
+.trust>i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--ok))}
+.empty{color:var(--dim);text-align:center;padding:40px}
+.bar{height:9px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2))}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#151a34;
+  border:1px solid var(--line);padding:12px 18px;border-radius:12px;opacity:0;transition:.25s;z-index:99}
+.toast.show{opacity:1}
+.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);
+  box-shadow:0 0 0 0 rgba(79,214,138,.6);animation:p 2s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(79,214,138,.5)}70%{box-shadow:0 0 0 9px rgba(79,214,138,0)}100%{box-shadow:0 0 0 0 rgba(79,214,138,0)}}
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--dim);font-size:12px}
+.node{background:#151a34;border:1px solid var(--line);border-radius:10px;padding:8px 11px;color:var(--ink);font-weight:600}
+.arrow{color:var(--brand)}
+code{background:#0d1024;padding:2px 6px;border-radius:6px;border:1px solid var(--line);font-size:12px}
+.hist{border-left:2px solid var(--line);margin-left:8px;padding-left:16px}
+.hist .e{position:relative;padding:8px 0}
+.hist .e::before{content:'';position:absolute;left:-21px;top:13px;width:9px;height:9px;border-radius:50%;background:var(--brand)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="dot"></span>MemoryVault</div>
+  <nav id="nav"></nav>
+  <div class="gauge">
+    <div style="text-align:right"><div style="font-size:11px;color:var(--dim)">MEMORY HEALTH</div>
+      <div id="hnum" style="font-weight:800">—</div></div>
+    <div class="ring" id="ring" data-g="—"></div>
+  </div>
+</header>
+<main id="view"><div class="empty">Loading…</div></main>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = location.origin;
+let KEY = localStorage.getItem('mv_key') || '';
+const $ = s => document.querySelector(s);
+const el = (h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild;};
+const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function api(path, opts={}){
+  opts.headers = Object.assign({'x-api-key':KEY,'content-type':'application/json'}, opts.headers||{});
+  const r = await fetch(API+path, opts);
+  if(!r.ok){ toast('⚠ '+r.status+' '+(await r.text()).slice(0,80)); throw new Error(r.status); }
+  return r.status===204?null:r.json();
+}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+
+const TABS = ['Overview','Search','Approvals','Insights','Receipts'];
+let tab='Overview';
+function renderNav(){
+  $('#nav').innerHTML='';
+  TABS.forEach(t=>{const b=el(`<button class="${t===tab?'active':''}">${t}</button>`);
+    b.onclick=()=>{tab=t;renderNav();route();};$('#nav').appendChild(b);});
+}
+
+async function refreshHealth(){
+  try{const h=await api('/api/health-score');
+    $('#hnum').textContent=h.score+' · '+h.grade;
+    const r=$('#ring');r.style.setProperty('--v',h.score);r.setAttribute('data-g',h.grade);
+    const col=h.score>=85?'var(--ok)':h.score>=65?'var(--warn)':'var(--bad)';
+    r.style.background=`conic-gradient(${col} ${h.score}%,var(--line) 0)`;
+  }catch(e){}
+}
+
+async function route(){
+  const v=$('#view');v.innerHTML='<div class="empty">Loading…</div>';
+  try{ await ({Overview,Search,Approvals,Insights,Receipts}[tab])(v); }
+  catch(e){ v.innerHTML='<div class="empty">Set your API key to begin.</div>'; }
+  refreshHealth();
+}
+
+// ---------- Overview ----------
+async function Overview(v){
+  const [counts,hs,ins,chain]=await Promise.all([
+    api('/api/counts'),api('/api/health-score'),api('/api/insights?days=180'),
+    api('/api/verify-chain')]);
+  const active=counts.active||0, quar=counts.quarantined||0;
+  v.innerHTML='';
+  v.appendChild(el(`<div>
+    <h1>Your company's AI brain <span class="pulse"></span></h1>
+    <p class="sub">One memory you own, that every AI plugs into. Live, governed, provable.</p>
+    <div class="flow card" style="justify-content:center;padding:14px">
+      <span class="node">Salesforce</span><span class="arrow">→</span>
+      <span class="node">Copilot</span><span class="arrow">→</span>
+      <span class="node">ChatGPT</span><span class="arrow">→</span>
+      <span class="node" style="border-color:var(--brand)">🧠 MemoryVault</span>
+      <span class="arrow">→</span><span class="node">every AI, in sync</span>
+    </div>
+    <div class="grid g4" style="margin-top:16px">
+      ${stat('Active memories',active,'in the shared brain')}
+      ${stat('Health score',hs.score+' <small>'+hs.grade+'</small>','freshness '+Math.round(hs.freshness*100)+'%')}
+      ${stat('Held for review',quar,'poison-defense queue')}
+      ${stat('Tamper check',chain.intact?'PASS ✓':'FAIL ✗','event chain integrity')}
+    </div>
+  </div>`));
+  const sig=ins.signals.slice(0,4).map(s=>`<div class="mem"><b class="chip warn">${s.count}×</b>
+     &nbsp; pattern <b>${esc(s.pattern)}</b> — <span style="color:var(--dim)">"${esc(s.example)}"</span></div>`).join('')||'<div class="empty">No repeated patterns yet.</div>';
+  v.appendChild(el(`<div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3>🔔 Signal alerts — what your AIs keep hearing</h3>${sig}</div>
+    <div class="card"><h3>⚡ Quick actions</h3>
+      <div class="row" style="flex-direction:column;align-items:stretch">
+        <button class="btn" onclick="doRescue()">Run Rescue (pull memory from all platforms)</button>
+        <button class="btn ghost" onclick="api('/api/sync',{method:'POST'}).then(()=>{toast('Synced to all AIs');route();})">Sync to every AI now</button>
+        <button class="btn ghost" onclick="api('/api/clean',{method:'POST'}).then(r=>{toast('Cleaned: '+r.dedupe.merged+' dup, '+r.expire.expired+' stale');route();})">Run Cleaner</button>
+      </div></div>
+  </div>`));
+}
+function stat(k,val,s){return `<div class="card stat"><div class="k">${k}</div><div class="v">${val}</div><div class="s">${s}</div></div>`;}
+
+async function doRescue(){
+  toast('Rescuing memory from all platforms…');
+  const r=await api('/api/rescue',{method:'POST',body:JSON.stringify(
+    {systems:['salesforce_agentforce','chatgpt_enterprise','intercom_fin','email_ingest'],clean:true})});
+  toast('Recovered '+r.total_recovered+' memories · chain '+(r.chain_intact?'intact':'BROKEN'));
+  route();
+}
+
+// ---------- Search ----------
+async function Search(v){
+  v.innerHTML='';
+  v.appendChild(el(`<div>
+    <h1>Search the brain</h1><p class="sub">Everything your AIs know — one search. (Try: acme)</p>
+    <div class="row"><input id="q" placeholder="Search memories…" style="flex:1;min-width:220px" value="acme">
+      <select id="agent"><option>admin</option><option>sales_agent</option><option>support_agent</option><option>hr_agent</option></select>
+      <button class="btn" onclick="runSearch()">Search</button></div>
+    <div id="res" style="margin-top:14px"></div></div>`));
+  $('#q').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});
+  runSearch();
+}
+async function runSearch(){
+  const q=$('#q').value, agent=$('#agent').value;
+  const d=await api('/api/memories?q='+encodeURIComponent(q)+'&agent='+agent+'&limit=100');
+  const box=$('#res');
+  if(!d.memories.length){box.innerHTML='<div class="empty">No memories. Run Rescue from Overview.</div>';return;}
+  box.innerHTML=d.memories.map(memCard).join('');
+}
+function memCard(m){
+  const t=Math.round((m.trust||0)*100);
+  const bias=m.bias_risk?'<span class="chip bad">bias-risk</span>':'';
+  return `<div class="mem"><div class="c">${esc(m.content)}</div>
+    <div class="meta">
+      <span class="chip">${esc(m.namespace)}</span>
+      <span class="chip">${esc((m.provenance||{}).source_system||'?')}</span>
+      <span class="chip">via ${esc((m.provenance||{}).channel||'?')}</span>
+      ${bias}
+      <span>trust</span><span class="trust"><i style="width:${t}%"></i></span>
+      <span>· ${esc((m.expires_at||'never').slice(0,10))}</span>
+      <span style="margin-left:auto"></span>
+      <button class="btn ghost sm" onclick="showHistory('${m.id}')">History</button>
+      <button class="btn ghost sm" onclick="showWhy('${m.id}')">Why?</button>
+      <button class="btn red sm" onclick="delMem('${m.id}')">Delete</button>
+    </div><div id="ex_${m.id}"></div></div>`;
+}
+async function showHistory(id){
+  const box=$('#ex_'+id);
+  const d=await api('/api/memories/'+id+'/history');
+  box.innerHTML=`<div class="hist" style="margin-top:10px">${d.history.map(e=>
+    `<div class="e"><b>${esc(e.action)}</b> — <span style="color:var(--dim)">${e.ts.slice(0,19)} by ${esc(e.actor)}</span>
+     → value <code>${esc(e.snapshot.value||'')}</code> · ${esc(e.snapshot.status)}
+     <button class="btn ghost sm" onclick="rollb('${id}',${e.seq})">Undo to here</button></div>`).join('')}</div>`;
+}
+async function showWhy(id){
+  const box=$('#ex_'+id);
+  const d=await api('/api/memories/'+id+'/why');
+  box.innerHTML=`<div class="card" style="margin-top:10px"><h3>🛫 Flight recorder</h3>
+    ${d.retrievals.length?d.retrievals.map(r=>`<div class="meta"><span class="chip">${r.ts.slice(0,19)}</span>
+      agent <b>${esc(r.agent)}</b> · context ${esc(r.context||'—')}</div>`).join(''):
+      '<div style="color:var(--dim)">Not used in any answer yet.</div>'}</div>`;
+}
+async function rollb(id,seq){await api('/api/memories/'+id+'/rollback?seq='+seq,{method:'POST'});toast('Rolled back');runSearch();}
+async function delMem(id){await api('/api/memories/'+id,{method:'DELETE'});toast('Deleted everywhere');runSearch();}
+
+// ---------- Approvals ----------
+async function Approvals(v){
+  const d=await api('/api/approvals');
+  v.innerHTML='';
+  v.appendChild(el(`<div><h1>Approval Room <span class="chip warn">${d.count}</span></h1>
+    <p class="sub">Memories from untrusted sources (email, web, uploads) are held OUT of the AI's brain
+    until a human approves — this blocks memory-poisoning attacks (OWASP ASI06).</p>
+    ${d.memories.map(m=>`<div class="mem" style="border-color:var(--warn)">
+      <div class="c">⚠ ${esc(m.content)}</div>
+      <div class="meta"><span class="chip bad">${esc((m.provenance||{}).source_system)}</span>
+        <span class="chip">via ${esc((m.provenance||{}).channel)}</span>
+        <span style="margin-left:auto"></span>
+        <button class="btn sm" onclick="apr('${m.id}',1)">Approve</button>
+        <button class="btn red sm" onclick="apr('${m.id}',0)">Reject</button></div></div>`).join('')
+      ||'<div class="empty">Nothing waiting. Your brain is clean. 🎉</div>'}</div>`));
+}
+async function apr(id,ok){await api('/api/approvals/'+id+'/'+(ok?'approve':'reject'),{method:'POST'});
+  toast(ok?'Approved into the brain':'Rejected');route();}
+
+// ---------- Insights ----------
+async function Insights(v){
+  const d=await api('/api/insights?days=180');
+  const themes=d.learned.top_themes.map(([w,n])=>`<span class="chip">${esc(w)} · ${n}</span>`).join(' ');
+  const spots=Object.entries(d.blind_spots).map(([ns,x])=>{
+    const cls=x.risk==='high'?'bad':x.risk==='medium'?'warn':'ok';
+    return `<div class="mem"><div class="row"><b>${esc(ns)}</b>
+      <span class="chip ${cls}">${x.risk} risk</span><span style="margin-left:auto;color:var(--dim)">${x.count} memories · avg ${x.avg_age_days}d old</span></div>
+      <div class="bar"><i style="width:${Math.min(100,x.avg_age_days/3)}%"></i></div></div>`;}).join('');
+  v.innerHTML='';
+  v.appendChild(el(`<div><h1>Insights</h1><p class="sub">What only we can see — because all your AI knowledge flows through one place.</p>
+    <div class="card"><h3>📚 What your AI learned (last 180 days)</h3>
+      <div style="font-size:26px;font-weight:800">${d.learned.memories_learned} <small style="font-size:13px;color:var(--dim)">memories</small></div>
+      <div class="row" style="margin-top:10px">${themes}</div></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3>🔔 Signal alerts</h3>${d.signals.map(s=>`<div class="mem"><b class="chip warn">${s.count}×</b> ${esc(s.pattern)} — <span style="color:var(--dim)">"${esc(s.example)}"</span></div>`).join('')||'<div class="empty">None yet</div>'}</div>
+      <div class="card"><h3>🗺️ Blind-spot map</h3>${spots||'<div class="empty">None</div>'}</div>
+    </div></div>`));
+}
+
+// ---------- Receipts ----------
+async function Receipts(v){
+  const d=await api('/api/receipts');
+  v.innerHTML='';
+  v.appendChild(el(`<div><h1>Deletion receipts</h1>
+    <p class="sub">Tamper-evident, hash-chained proof of every erasure — the GDPR / EU-Data-Act paper trail.</p>
+    ${d.receipts.map(r=>`<div class="mem"><div class="row"><b>${esc(r.kind)}</b>
+      <span class="chip">${r.ts.slice(0,19)}</span>
+      <span style="margin-left:auto;color:var(--dim)">${esc(r.payload.subject||r.payload.memory_id||'')}</span></div>
+      <div class="meta">hash <code>${esc(r.hash.slice(0,40))}…</code></div></div>`).join('')
+      ||'<div class="empty">No receipts yet. Delete a customer to generate one.</div>'}</div>`));
+}
+
+// ---------- boot ----------
+async function boot(){
+  if(!KEY){ try{ KEY=await (await fetch(API+'/api/demo-key')).text(); KEY=KEY.trim();
+      localStorage.setItem('mv_key',KEY);}catch(e){} }
+  renderNav(); route();
+}
+boot();
+</script>
+</body>
+</html>

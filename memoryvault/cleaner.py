@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 
 from .store import Vault
 from .schema import MemoryStatus, MemoryType, conflict_key
+from .embeddings import get_embedder
+from .entities import conflict_strategy
 
 _WORD = re.compile(r"[a-z0-9]+")
 
@@ -24,12 +26,11 @@ def _tokens(text: str) -> set:
     return set(_WORD.findall(text.lower()))
 
 
-def _similar(a: str, b: str, threshold: float = 0.82) -> bool:
+def _jaccard(a: str, b: str) -> float:
     ta, tb = _tokens(a), _tokens(b)
     if not ta or not tb:
-        return False
-    j = len(ta & tb) / len(ta | tb)
-    return j >= threshold
+        return 0.0
+    return len(ta & tb) / len(ta | tb)
 
 
 # Opinion/bias cues for the yes-man filter (7.4). A classifier in prod.
@@ -40,12 +41,17 @@ _BIAS_CUES = ["i think", "i believe", "in my opinion", "hate", "love",
 
 
 class Cleaner:
-    def __init__(self, vault: Vault):
+    def __init__(self, vault: Vault, embedder=None,
+                 sem_threshold: float = 0.86, lex_threshold: float = 0.82):
         self.vault = vault
+        self.embedder = embedder or get_embedder()
+        self.sem_threshold = sem_threshold
+        self.lex_threshold = lex_threshold
 
-    # ---- 7.1 -------------------------------------------------------------
+    # ---- 7.1 : embedding + lexical + same-slot dedupe --------------------
     def dedupe(self, actor: str = "cleaner") -> dict:
         active = self.vault.all_memories(status=MemoryStatus.ACTIVE.value)
+        vecs = {m.id: self.embedder.embed(m.content) for m in active}
         removed, seen = 0, []
         for m in sorted(active, key=lambda x: (x.trust, x.occurred_at),
                         reverse=True):
@@ -55,7 +61,11 @@ class Cleaner:
                              conflict_key(m) == conflict_key(keeper) and
                              m.value.strip().lower() ==
                              keeper.value.strip().lower())
-                if same_slot or _similar(m.content, keeper.content):
+                sem = self.embedder.cosine(vecs[m.id], vecs[keeper.id])
+                lex = _jaccard(m.content, keeper.content)
+                # semantic OR lexical near-duplicate, or identical slot/value
+                if same_slot or sem >= self.sem_threshold or \
+                        lex >= self.lex_threshold:
                     dup_of = keeper
                     break
             if dup_of:
@@ -100,9 +110,15 @@ class Cleaner:
             values = {m.value.strip().lower() for m in group}
             if len(values) <= 1:
                 continue
-            winner = max(group, key=lambda x: (x.occurred_at, x.trust))
+            # per-attribute policy: recency vs trust (Feature 3.2, upgraded)
+            strategy = conflict_strategy(group[0].attribute)
+            if strategy == "trust":
+                keyf = lambda x: (x.trust, x.occurred_at)
+            else:
+                keyf = lambda x: (x.occurred_at, x.trust)
+            winner = max(group, key=keyf)
             close = [m for m in group if m.id != winner.id and
-                     m.occurred_at == winner.occurred_at]
+                     keyf(m) == keyf(winner)]
             for m in group:
                 if m.id == winner.id:
                     continue

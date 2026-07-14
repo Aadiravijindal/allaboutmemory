@@ -3,6 +3,9 @@
 *.db.key
 *.key
 
+# API control-plane data (tenants, keys, audit)
+data/
+
 # connector delivery outboxes (generated at runtime)
 fixtures/*.outbox.json
 

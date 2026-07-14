@@ -43,6 +43,36 @@ class LocalKeyProvider(KeyProvider):
         return key
 
 
+class AwsKmsKeyProvider(KeyProvider):  # pragma: no cover - needs AWS
+    """Production: the data key is wrapped by a CMK in the CUSTOMER's AWS
+    KMS. We call Decrypt with their key; the plaintext data key lives only
+    in memory in their tenant. This is the "we can't read your data"
+    promise as infrastructure — the CMK never leaves the customer account.
+
+    Env: MV_KMS_KEY_ID (customer CMK arn), MV_WRAPPED_KEY (b64 ciphertext).
+    """
+
+    def __init__(self, key_id: str = "", wrapped_key_b64: str = ""):
+        self.key_id = key_id or os.environ.get("MV_KMS_KEY_ID", "")
+        self.wrapped = wrapped_key_b64 or os.environ.get("MV_WRAPPED_KEY", "")
+        import base64
+        import boto3
+        self._b64 = base64
+        self._kms = boto3.client("kms")
+
+    def get_key(self) -> bytes:
+        if not self.wrapped:
+            # first run: generate a data key under the customer CMK
+            resp = self._kms.generate_data_key(KeyId=self.key_id,
+                                                KeySpec="AES_256")
+            # caller persists resp['CiphertextBlob'] as MV_WRAPPED_KEY
+            import base64
+            return base64.urlsafe_b64encode(resp["Plaintext"][:32])
+        blob = self._b64.b64decode(self.wrapped)
+        resp = self._kms.decrypt(CiphertextBlob=blob, KeyId=self.key_id)
+        return self._b64.urlsafe_b64encode(resp["Plaintext"][:32])
+
+
 class Cipher:
     def __init__(self, provider: KeyProvider | None):
         self.enabled = HAVE_CRYPTO and provider is not None

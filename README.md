@@ -18,23 +18,30 @@ all 8 parts, runnable today.
 
 ---
 
-## Quick start
+## Quick start (30 seconds)
 
 ```bash
 pip install -r requirements.txt
 
-# PART 4 — rescue trapped memory out of every platform into your vault
-python mv.py rescue
+# ── the real product: API + beautiful Control Room ──
+uvicorn memoryvault.api:app --port 8000
+#   open http://localhost:8000  →  click "Run Rescue"  →  watch it work
+#   API docs at http://localhost:8000/api/docs
 
-# see the whole product story end-to-end
+# ── or one command with Docker (API + Postgres) ──
+docker compose up
+
+# ── the terminal walkthrough of all 8 parts ──
 python demo.py
 
-# PART 5 — open the Control Room (web dashboard)
-python dashboard.py         # http://localhost:5000
-
-# run the tests (all 8 parts)
+# ── tests (20: engine + API) ──
 python -m pytest tests/ -q
 ```
+
+**The 60-second "wow":** open the Control Room, hit **Run Rescue** — you
+watch 13 memories pulled from four platforms, a memory-poisoning email
+caught and quarantined, a plan conflict resolved (newest wins, old kept in
+history), a live health score, and a tamper-check pass. One screen. Seconds.
 
 ---
 
@@ -53,8 +60,27 @@ python -m pytest tests/ -q
 
 Every feature from the product spec maps to real code — see
 [`docs/FEATURES.md`](docs/FEATURES.md) for the feature-by-feature map, and
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how it's built and how the
-demo maps to production (Postgres, Temporal, BYOC, KMS).
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how it's built.
+
+### What makes this industry-grade (not just a demo)
+
+| Layer | Built | Where |
+|---|---|---|
+| REST API (FastAPI) + OpenAPI + logging + health | ✅ | `memoryvault/api.py` |
+| API-key auth + multi-tenant isolation + RBAC + audit | ✅ | `memoryvault/tenancy.py` |
+| Beautiful Control Room SPA | ✅ | `web/index.html` |
+| Entity resolution + embedding dedupe + per-attribute conflict | ✅ | `entities.py`, `embeddings.py` |
+| Live connector contracts (Mem0, ChatGPT export, REST, Data-Act) | ✅ | `connectors_live.py` |
+| Postgres + pgvector backend | 🔌 wired | `postgres.py` |
+| AWS KMS envelope encryption | 🔌 wired | `crypto.py` |
+| Python SDK, Docker, docker-compose, CI | ✅ | `sdk/`, `Dockerfile`, `.github/` |
+| Open interchange spec (CMIF) | ✅ | `docs/SPEC.md` |
+| SOC 2, pen test, live vendor creds, BYOC apply | 🧑‍💼 needs you | `docs/PRODUCTION.md` |
+
+See [`docs/PRODUCTION.md`](docs/PRODUCTION.md) for the honest done / wired /
+needs-you breakdown and the path to the first paid pilot,
+[`docs/SECURITY.md`](docs/SECURITY.md) for the security model, and
+[`docs/BUSINESS.md`](docs/BUSINESS.md) for market, moat, and expansion plan.
 
 ---
 

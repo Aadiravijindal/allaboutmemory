@@ -121,8 +121,11 @@ class MemoryUnit:
 
 
 def conflict_key(m: MemoryUnit) -> Optional[tuple]:
-    """Two memories 'fight' when they claim different values for the
-    same subject+attribute (Features 3.2 and 7.3)."""
+    """Two memories 'fight' when they claim different values for the same
+    subject+attribute — compared on CANONICAL forms so 'Acme' and
+    'Acme Corp' collapse to one entity (Features 3.2 and 7.3)."""
     if m.subject and m.attribute:
-        return (m.subject.strip().lower(), m.attribute.strip().lower())
+        # imported lazily to avoid a cycle at module load
+        from .entities import canonical_subject, canonical_attribute
+        return (canonical_subject(m.subject), canonical_attribute(m.attribute))
     return None
