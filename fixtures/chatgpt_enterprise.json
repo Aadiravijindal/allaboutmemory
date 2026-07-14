@@ -1,0 +1,5 @@
+[
+  {"content": "Acme Corp upgraded to the Enterprise plan", "subject": "customer:acme", "attribute": "plan", "value": "Enterprise", "type": "fact", "namespace": "sales", "channel": "chat", "entities": ["Acme Corp"], "tags": ["billing"], "occurred_at": "2026-06-20T11:00:00+00:00"},
+  {"content": "Acme prefers evening calls after 5", "subject": "customer:acme", "attribute": "call_time", "value": "evening", "type": "preference", "namespace": "sales", "channel": "chat", "entities": ["Acme Corp"], "occurred_at": "2026-03-05T12:00:00+00:00"},
+  {"content": "Engineering uses Python and Postgres for the data platform", "subject": "internal:eng", "attribute": "stack", "value": "python,postgres", "type": "fact", "namespace": "engineering", "channel": "chat", "entities": ["Python", "Postgres"], "decay_class": "slow", "occurred_at": "2026-05-10T15:00:00+00:00"}
+]

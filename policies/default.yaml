@@ -1,0 +1,37 @@
+# PART 6 — THE RULEBOOK. Set once, enforced everywhere.
+# Edit this file to change how the whole vault behaves.
+
+quarantine:            # Feature 5.4 — the Approval Room
+  untrusted_channels:  # memories from these wait for human approval
+    - email
+    - web
+    - upload
+    - external_doc
+  min_trust: 0.3       # anything below this also waits
+
+acl:                   # Feature 6.1 — who-sees-what walls
+  default: [general]
+  admin: ["*"]
+  sales_agent: [sales, general]
+  support_agent: [support, general]
+  hr_agent: [hr, general]
+  eng_agent: [engineering, general]
+
+ttl_overrides:         # Feature 6.2 — auto-expiry (days)
+  financial: 90
+  pii: 365
+  billing: 90
+
+projections:           # Feature 3.3 — per-AI diet (what each system receives)
+  default:
+    namespaces: null           # null = all allowed
+    min_trust: 0.3
+    exclude_bias_risk: true
+  intercom_fin:
+    namespaces: [support, general]
+    min_trust: 0.4
+    exclude_bias_risk: true
+  microsoft_copilot:
+    namespaces: [general, sales, support, engineering]
+    min_trust: 0.4
+    exclude_bias_risk: true

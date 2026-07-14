@@ -1,0 +1,18 @@
+# vault databases & keys (customer data — never commit)
+*.db
+*.db.key
+*.key
+
+# connector delivery outboxes (generated at runtime)
+fixtures/*.outbox.json
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# reports
+*.report.json

@@ -1,0 +1,70 @@
+[
+  {
+    "content": "Customer reported the export button is broken on the reports page",
+    "subject": "customer:acme",
+    "attribute": "issue",
+    "value": "export_broken",
+    "type": "episode",
+    "namespace": "support",
+    "channel": "support",
+    "entities": [
+      "Acme Corp"
+    ],
+    "tags": [
+      "bug",
+      "complaint"
+    ],
+    "decay_class": "fast",
+    "occurred_at": "2026-07-08T09:30:00+00:00"
+  },
+  {
+    "content": "Another customer says CSV export fails on large reports",
+    "subject": "customer:globex",
+    "attribute": "issue",
+    "value": "export_broken",
+    "type": "episode",
+    "namespace": "support",
+    "channel": "support",
+    "entities": [
+      "Globex"
+    ],
+    "tags": [
+      "bug",
+      "complaint"
+    ],
+    "decay_class": "fast",
+    "occurred_at": "2026-07-09T10:00:00+00:00"
+  },
+  {
+    "content": "A third account hit the same export failure this week",
+    "subject": "customer:initech",
+    "attribute": "issue",
+    "value": "export_broken",
+    "type": "episode",
+    "namespace": "support",
+    "channel": "support",
+    "entities": [
+      "Initech"
+    ],
+    "tags": [
+      "bug",
+      "complaint"
+    ],
+    "decay_class": "fast",
+    "occurred_at": "2026-07-10T11:00:00+00:00"
+  },
+  {
+    "content": "Jordan at Acme was frustrated on the last call",
+    "subject": "customer:acme",
+    "attribute": "mood",
+    "value": "frustrated",
+    "type": "episode",
+    "namespace": "support",
+    "channel": "support",
+    "entities": [
+      "Jordan Rivera"
+    ],
+    "decay_class": "fast",
+    "occurred_at": "2026-07-08T09:35:00+00:00"
+  }
+]
