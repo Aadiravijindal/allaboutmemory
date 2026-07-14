@@ -24,8 +24,26 @@ money, time — no code can do it).
 | Postgres + pgvector backend | `memoryvault/postgres.py` | a live PG w/ pgvector; port the SQL from `store.py` (mechanical) + run `DATABASE_URL` |
 | AWS KMS encryption | `memoryvault/crypto.py::AwsKmsKeyProvider` | customer AWS account + CMK; `pip install boto3` |
 | Real embeddings | `memoryvault/embeddings.py::OpenAIEmbedder` | OpenAI/Bedrock key (runs in-tenant) |
+| **LLM transform layer** | `memoryvault/transform.py::LLMTransformer` | `OPENAI_API_KEY` (heuristic fallback runs offline) |
+| **S3 evidence locker** | `memoryvault/locker.py::S3Locker` | `MV_LOCKER_BUCKET` (local fallback works now) |
+| **Real Temporal workflows** | `memoryvault/temporal_workflows.py` | `pip install temporalio` + `MV_TEMPORAL_HOST` (durable queue is the default) |
+| **WorkOS SSO** | `memoryvault/sso.py` | `WORKOS_API_KEY` + `WORKOS_CLIENT_ID` (API-key auth works now) |
 | Live connectors | `memoryvault/connectors_live.py` | **vendor credentials** (your Salesforce org, Mem0 key, ChatGPT Enterprise compliance export) |
 | Docker Compose w/ Postgres | `docker-compose.yml` | `docker compose up` |
+
+## ✅ ALSO DONE (previously "gaps", now built)
+- **LLM transform layer** — `transform.py` normalizes messy exports into
+  clean CMIF (in-tenant LLM + offline heuristic fallback; never fabricates).
+- **S3 evidence locker** — `locker.py` stashes raw exports immutably with a
+  SHA-256, referenced in the verification report.
+- **Real Temporal** — `temporal_workflows.py` (optional upgrade; the built-in
+  durable queue covers the same contract with zero infra).
+- **React dashboard** — `web/react/` (real React 18, no build step) at `/react`.
+- **WorkOS SSO** — `sso.py` (`/auth/login`, `/auth/callback`) + sessions.
+- **Year-2 features:** Portable-✓ certification (`certification.py`, `/api/certify`),
+  opt-in cross-company federation network (`federation.py`, redacted +
+  contribute-to-earn), and sovereign editions (`sovereign.py`: US/EU/India/Gov
+  residency).
 
 ## 🧑‍💼 NEEDS YOU (no code substitutes for these)
 | Item | Who does it | Time |

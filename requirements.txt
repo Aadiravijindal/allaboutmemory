@@ -15,7 +15,8 @@ requests>=2.31
 
 # --- production only (uncomment / paste keys to activate) ---
 # psycopg[binary]>=3.1    # Postgres + pgvector backend (DATABASE_URL)
-# boto3>=1.34             # AWS KMS key provider (MV_KMS_PROVIDER=aws)
-# openai>=1.0             # real embeddings (MV_EMBEDDINGS=openai)
+# boto3>=1.34             # AWS KMS + S3 evidence locker (MV_KMS_PROVIDER=aws, MV_LOCKER_BUCKET)
+# openai>=1.0             # real embeddings + LLM transform (OPENAI_API_KEY)
 # stripe>=8.0             # billing (STRIPE_SECRET_KEY)
-# temporalio>=1.5         # optional: swap durable.py for real Temporal
+# temporalio>=1.5         # optional: swap durable queue for real Temporal
+# workos>=5.0             # enterprise SSO (WORKOS_API_KEY)

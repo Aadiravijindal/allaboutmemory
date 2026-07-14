@@ -279,10 +279,82 @@ async def counts(key=Depends(require("read"))):
 # ---- setup / status (what's activated by your keys) ------------------
 @app.get("/api/setup")
 async def setup_status(key=Depends(require("admin"))):
+    from .sso import sso_enabled
+    from .sovereign import status as sov_status
+    from .temporal_workflows import temporal_enabled
     act = CONFIG.activated()
     act["live_connectors"] = live_systems()
     act["billing_ledger"] = meter.summary(key.org)
+    act["sso"] = "workos" if sso_enabled() else "api-key (demo)"
+    act["sync_runtime"] = "temporal" if temporal_enabled() else "durable-queue"
+    act["sovereign"] = sov_status()
     return act
+
+
+# ---- SSO (WorkOS) -----------------------------------------------------
+@app.get("/auth/login")
+async def auth_login():
+    from .sso import authorization_url, sso_enabled
+    import secrets as _s
+    if not sso_enabled():
+        raise HTTPException(400, "SSO not configured (set WORKOS_API_KEY)")
+    return {"authorization_url": authorization_url(_s.token_urlsafe(8))}
+
+
+@app.get("/auth/callback")
+async def auth_callback(code: str):
+    from .sso import complete_login, SESSIONS
+    profile = complete_login(code)
+    cp.create_org(profile["org"]) if profile["org"] not in cp._vaults else None
+    sid = SESSIONS.create(profile["org"], profile["email"], profile["role"])
+    return {"session": sid, "org": profile["org"], "email": profile["email"]}
+
+
+# ---- certification: Portable-✓ badge ---------------------------------
+@app.post("/api/certify")
+async def certify(key=Depends(require("read"))):
+    from .certification import issue_badge
+    v = cp.vault_for(key.org)
+    mems = [m.to_dict() for m in v.all_memories(status="active")]
+    return issue_badge(key.org, mems)
+
+
+# ---- federation: opt-in shared knowledge network ---------------------
+@app.post("/api/federation/contribute")
+async def fed_contribute(key=Depends(require("admin"))):
+    from .federation import FederationNetwork
+    from .sovereign import federation_allowed
+    if not federation_allowed():
+        raise HTTPException(403, "federation disabled for this sovereign edition")
+    v = cp.vault_for(key.org)
+    net = FederationNetwork(os.path.join(DATA_DIR, "federation.jsonl"))
+    mems = [m.to_dict() for m in v.all_memories(status="active")]
+    return net.contribute(key.org, mems)
+
+
+@app.get("/api/federation/query")
+async def fed_query(q: str, key=Depends(require("read"))):
+    from .federation import FederationNetwork
+    net = FederationNetwork(os.path.join(DATA_DIR, "federation.jsonl"))
+    return {"lessons": net.query(q)}
+
+
+# ---- sovereign edition status ----------------------------------------
+@app.get("/api/sovereign")
+async def sovereign(key=Depends(require("read"))):
+    from .sovereign import status
+    return status()
+
+
+# ---- React dashboard (alt UI) ----------------------------------------
+@app.get("/react", response_class=HTMLResponse)
+async def react_ui():
+    ui = os.path.join(os.path.dirname(__file__), "..", "web", "react",
+                      "index.html")
+    if os.path.exists(ui):
+        with open(ui) as f:
+            return f.read()
+    raise HTTPException(404, "react UI not found")
 
 
 # ---- billing ----------------------------------------------------------

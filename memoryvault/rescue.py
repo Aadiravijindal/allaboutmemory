@@ -20,23 +20,38 @@ from .connectors import ConnectorRegistry
 
 
 class RescueTool:
-    def __init__(self, vault: Vault, registry: ConnectorRegistry):
+    def __init__(self, vault: Vault, registry: ConnectorRegistry,
+                 org: str = "demo", transformer=None, locker=None):
         self.vault = vault
         self.registry = registry
         self.sync = SyncEngine(vault, registry)
+        self.org = org
+        # LLM transform layer + evidence locker (with offline fallbacks)
+        from .transform import get_transformer
+        from .locker import get_locker
+        self.transformer = transformer or get_transformer()
+        self.locker = locker or get_locker()
 
     def run(self, systems: list, clean: bool = True) -> dict:
         started = datetime.now(timezone.utc).isoformat()
         per_system = []
         recovered_total = 0
+        evidence = []
 
         for system in systems:
             try:
                 conn = self.registry.connect(system)
                 mems = conn.extract()
+                # 1) stash the raw export in the evidence locker (immutable)
+                raw_dump = json.dumps([m.to_dict() for m in mems]).encode()
+                ev = self.locker.put(self.org, system, raw_dump)
+                evidence.append({"system": system, "uri": ev.get("uri"),
+                                 "sha256": ev["sha256"], "bytes": ev["bytes"]})
+                # 2) LLM-normalize each record into clean canonical memory
                 loaded, quarantined = 0, 0
                 for m in mems:
-                    saved = self.vault.add(m, actor=f"rescue:{system}")
+                    norm = self.transformer.transform(m.to_dict(), system)
+                    saved = self.vault.add(norm, actor=f"rescue:{system}")
                     if saved.status == "quarantined":
                         quarantined += 1
                     loaded += 1
@@ -61,6 +76,8 @@ class RescueTool:
             "systems": per_system,
             "total_recovered": recovered_total,
             "cleaning": cleaning,
+            "evidence_locker": evidence,
+            "transformer": type(self.transformer).__name__,
             "vault_counts": self.vault.counts(),
             "chain_intact": self.vault.verify_chain(),
         }

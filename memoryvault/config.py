@@ -66,6 +66,15 @@ class Config:
     stripe_price_platform: str = os.environ.get("STRIPE_PRICE_PLATFORM", "")
     stripe_price_per_connector: str = os.environ.get("STRIPE_PRICE_CONNECTOR", "")
 
+    # ---- SSO (WorkOS) --------------------------------------------------
+    workos_api_key: str = os.environ.get("WORKOS_API_KEY", "")
+    workos_client_id: str = os.environ.get("WORKOS_CLIENT_ID", "")
+
+    # ---- evidence locker + sovereign + temporal ------------------------
+    locker_bucket: str = os.environ.get("MV_LOCKER_BUCKET", "")
+    sovereign: str = os.environ.get("MV_SOVEREIGN", "us")
+    temporal_host: str = os.environ.get("MV_TEMPORAL_HOST", "")
+
     # ---- runtime -------------------------------------------------------
     sync_interval_seconds: int = int(os.environ.get("MV_SYNC_INTERVAL", "3600"))
 
