@@ -145,6 +145,49 @@ function Insights(){
     </div></div>`;
 }
 
+function Connect({toast}){
+  const [d,setD]=useState(null);
+  const [name,setName]=useState("");const [base,setBase]=useState("");const [field,setField]=useState("content");
+  const load=useCallback(()=>api("/api/connectors").then(setD).catch(()=>{}),[]);
+  useEffect(()=>{load();},[]);
+  if(!d) return html`<div class="empty">Loading…</div>`;
+  const add=async()=>{
+    if(!name||!base){toast("name + base URL required");return;}
+    await api("/api/connectors",{method:"POST",body:JSON.stringify({name,kind:"rest",
+      config:{base_url:base,extract_path:"/",field_map:{content:field}}})});
+    toast("Connected "+name);setName("");setBase("");load();};
+  const ingestUrl=location.origin+d.ingest_url;
+  return html`<div>
+    <h1>Connect any AI</h1><p class="sub">Not just the big ones — connect ANY tool: a PDF-maker AI, a transcription AI, anything. Three ways:</p>
+    <div class="grid g2">
+      <div class="card"><h3>1 · Add any AI with an API</h3>
+        <p class="s">Point us at any tool's API — no code.</p>
+        <div class="row" style=${{flexDirection:"column",alignItems:"stretch",gap:"8px"}}>
+          <input placeholder="Name (e.g. pdfmaker_ai)" value=${name} onInput=${e=>setName(e.target.value)}/>
+          <input placeholder="API base URL (https://api.tool.com)" value=${base} onInput=${e=>setBase(e.target.value)}/>
+          <input placeholder="Which field holds the text? (e.g. summary)" value=${field} onInput=${e=>setField(e.target.value)}/>
+          <button class="btn" onClick=${add}>Connect this AI</button>
+        </div></div>
+      <div class="card"><h3>2 · Webhook inbox (push from anything)</h3>
+        <p class="s">Any tool — directly or via Zapier/Make — POSTs what it learns here. Works with 6000+ apps.</p>
+        <div class="mem" style=${{fontSize:"12px",wordBreak:"break-all"}}>POST ${ingestUrl}<br/>header <code>x-ingest-token: ${d.ingest_token.slice(0,16)}…</code></div>
+        <button class="btn ghost sm" onClick=${()=>{navigator.clipboard?.writeText(ingestUrl);toast("URL copied");}}>Copy URL</button>
+      </div>
+    </div>
+    <div class="card" style=${{marginTop:"16px"}}><h3>3 · Upload an export</h3>
+      <p class="s">Every tool can export something. Drop a JSON/CSV file — we normalize the mess into memories.</p>
+      <input type="file" onChange=${async e=>{const f=e.target.files[0];if(!f)return;const txt=await f.text();
+        const r=await fetch(location.origin+"/api/upload",{method:"POST",headers:{"x-api-key":KEY,"x-filename":f.name},body:txt});
+        const j=await r.json();toast("Imported "+(j.added||0)+" memories");}}/>
+    </div>
+    <h3 style=${{marginTop:"20px"}}>Connected AIs</h3>
+    <div class="row" style=${{flexWrap:"wrap"}}>
+      ${d.available.map(a=>html`<span class="chip" key=${a}>${a}${d.live_env.includes(a)?" ✓live":""}</span>`)}
+      ${d.custom.map(cn=>html`<span class="chip ok" key=${cn.name}>${cn.name} (custom)</span>`)}
+    </div>
+  </div>`;
+}
+
 function App(){
   const [tab,setTab]=useState("Overview");
   const [h,setH]=useState(null);
@@ -154,8 +197,8 @@ function App(){
   const reload=()=>setNonce(n=>n+1);
   const refreshH=useCallback(()=>api("/api/health-score").then(setH).catch(()=>{}),[]);
   useEffect(()=>{refreshH();},[nonce]);
-  const tabs=["Overview","Search","Approvals","Insights"];
-  const view={Overview,Search,Approvals,Insights}[tab];
+  const tabs=["Overview","Search","Connect","Approvals","Insights"];
+  const view={Overview,Search,Connect,Approvals,Insights}[tab];
   return html`<${React.Fragment}>
     <header>
       <div class="logo"><span class="dot"></span>MemoryVault <span style=${{fontSize:"11px",color:"var(--dim)",fontWeight:400}}>React</span></div>

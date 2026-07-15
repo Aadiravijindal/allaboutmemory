@@ -62,12 +62,19 @@ app = FastAPI(title="MemoryVault API", version="0.3.0",
 meter = Meter(DATA_DIR)
 billing = StripeBilling()
 
+from .anyai import CustomConnectorStore, ingest_records, parse_upload  # noqa: E402
+custom_store = CustomConnectorStore(DATA_DIR)
 
-def build_registry():
-    """Demo FileConnectors, overlaid with any live connectors whose keys
-    are pasted in .env. Paste a key -> that platform goes live here."""
+
+def build_registry(org: str = None):
+    """Demo FileConnectors, overlaid with (a) live connectors whose keys are
+    pasted in .env, and (b) this org's CUSTOM 'any AI' connections added
+    from the UI. Paste a key OR add any AI -> it's live here."""
     reg = default_registry(os.path.abspath(FIXTURES))
     register_live(reg)
+    if org:
+        for conn in custom_store.build(org):
+            reg.register(conn.system, (lambda c=conn, **kw: c))
     return reg
 
 
@@ -190,6 +197,70 @@ async def erase(subject: str, key=Depends(require("delete"))):
     return r
 
 
+# ---- CONNECT ANY AI: custom connectors + webhook inbox + upload -------
+class CustomConnectorIn(BaseModel):
+    name: str                       # e.g. "pdfmaker_ai"
+    kind: str = "rest"              # "rest" for now
+    config: dict = {}               # base_url, auth_header, field_map, ...
+
+
+@app.get("/api/connectors")
+async def list_connectors(key=Depends(require("read"))):
+    """Everything this org can pull from: built-in + live + custom."""
+    reg = build_registry(key.org)
+    return {"available": reg.available(),
+            "live_env": live_systems(),
+            "custom": custom_store.list(key.org),
+            "ingest_url": f"/api/ingest/{key.org}",
+            "ingest_token": custom_store.ingest_token(key.org)}
+
+
+@app.post("/api/connectors")
+async def add_connector(body: CustomConnectorIn, key=Depends(require("connect"))):
+    """Connect ANY AI with an API — no code, no redeploy."""
+    entry = custom_store.add(key.org, body.name, body.kind, body.config)
+    cp.audit(key.org, key.name or key.role, "add_connector",
+             {"name": entry["name"], "kind": body.kind})
+    return {"added": entry["name"], "kind": entry["kind"]}
+
+
+@app.delete("/api/connectors/{name}")
+async def remove_connector(name: str, key=Depends(require("connect"))):
+    return {"removed": custom_store.remove(key.org, name)}
+
+
+@app.post("/api/ingest/{org}")
+async def ingest(org: str, request: Request, x_ingest_token: str = Header(None)):
+    """The WEBHOOK INBOX. Any AI tool (directly, or via Zapier/Make/n8n)
+    POSTs what it learned here. Auth is the per-org ingest token, so no
+    API-key/RBAC needed — this is the public push door."""
+    if not custom_store.check_ingest_token(org, x_ingest_token):
+        raise HTTPException(401, "invalid ingest token")
+    body = await request.json()
+    source = body.get("source", "webhook") if isinstance(body, dict) else "webhook"
+    records = body.get("records", body) if isinstance(body, dict) else body
+    result = ingest_records(cp.vault_for(org), org, source, records)
+    meter.record(org, "ingest", result["added"])
+    return result
+
+
+@app.post("/api/upload")
+async def upload(request: Request, source: str = "upload",
+                 key=Depends(require("connect"))):
+    """The UNIVERSAL UPLOAD door. Drop any tool's JSON/CSV export; the LLM
+    transform layer normalizes it into memories."""
+    raw = await request.body()
+    fname = request.headers.get("x-filename", "export.json")
+    try:
+        records = parse_upload(fname, raw)
+    except Exception as e:
+        raise HTTPException(400, f"could not parse upload: {e}")
+    result = ingest_records(cp.vault_for(key.org), key.org, source, records,
+                            channel="upload", trust=0.5)
+    meter.record(key.org, "upload", result["added"])
+    return result
+
+
 # ---- Approval Room ----------------------------------------------------
 @app.get("/api/approvals")
 async def approvals(key=Depends(require("read"))):
@@ -213,7 +284,7 @@ async def reject(mid: str, key=Depends(require("approve"))):
 @app.post("/api/rescue")
 async def rescue(body: RescueIn, key=Depends(require("connect"))):
     v = cp.vault_for(key.org)
-    report = RescueTool(v, build_registry()).run(body.systems, clean=body.clean)
+    report = RescueTool(v, build_registry(key.org), org=key.org).run(body.systems, clean=body.clean)
     meter.record(key.org, "rescue", meta={"systems": body.systems})
     cp.audit(key.org, key.name or key.role, "rescue",
              {"systems": body.systems, "recovered": report["total_recovered"]})
@@ -225,14 +296,14 @@ async def rescue_report(body: RescueIn, key=Depends(require("connect"))):
     """Run a rescue and return the verification report as printable HTML."""
     from .report import render_html
     v = cp.vault_for(key.org)
-    report = RescueTool(v, build_registry()).run(body.systems, clean=body.clean)
+    report = RescueTool(v, build_registry(key.org), org=key.org).run(body.systems, clean=body.clean)
     return render_html(report)
 
 
 @app.post("/api/sync")
 async def sync(key=Depends(require("connect"))):
     v = cp.vault_for(key.org)
-    reg = build_registry()
+    reg = build_registry(key.org)
     for s in reg.available():
         try:
             reg.connect(s)
@@ -379,14 +450,14 @@ async def billing_webhook(request: Request):
 # ---- durable sync (retries / dead-letter) -----------------------------
 @app.post("/api/durable/enqueue")
 async def durable_enqueue(kind: str = "full", key=Depends(require("connect"))):
-    ds = DurableSync(cp.vault_for(key.org), build_registry())
+    ds = DurableSync(cp.vault_for(key.org), build_registry(key.org))
     ds.enqueue(kind)
     return ds.run_due()
 
 
 @app.get("/api/durable/stats")
 async def durable_stats(key=Depends(require("read"))):
-    ds = DurableSync(cp.vault_for(key.org), build_registry())
+    ds = DurableSync(cp.vault_for(key.org), build_registry(key.org))
     return {"jobs": ds.stats(), "deadletters": ds.deadletters()}
 
 
