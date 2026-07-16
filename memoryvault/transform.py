@@ -76,18 +76,29 @@ class HeuristicTransformer(Transformer):
                 if m:
                     attribute, value = attr, m.group(0).lower()
                     break
-        prov = Provenance(source_system=system,
-                          channel=raw.get("channel", "unknown"),
-                          agent_id=raw.get("agent_id", system),
-                          occurred_at=raw.get("occurred_at", now_iso()))
+        # Preserve an already-built provenance (from a connector) so employee
+        # attribution, channel, department etc. survive normalization.
+        existing = raw.get("provenance")
+        if isinstance(existing, dict) and existing.get("source_system"):
+            prov_dict = dict(existing)
+        else:
+            prov_dict = Provenance(
+                source_system=system,
+                channel=raw.get("channel", "unknown"),
+                agent_id=raw.get("agent_id", system),
+                employee=raw.get("employee", ""),
+                employee_email=raw.get("employee_email", ""),
+                department=raw.get("department", ""),
+                conversation_id=raw.get("conversation_id", ""),
+                occurred_at=raw.get("occurred_at", now_iso())).to_dict()
         return MemoryUnit(
             content=content, subject=subject, attribute=attribute, value=value,
             type=raw.get("type", MemoryType.FACT.value),
             namespace=raw.get("namespace", "general"),
             entities=raw.get("entities", []), tags=raw.get("tags", []),
             decay_class=raw.get("decay_class") or _decay_for(content),
-            occurred_at=prov.occurred_at, provenance=prov.to_dict(),
-            trust=raw.get("trust", 0.5))
+            occurred_at=prov_dict.get("occurred_at", now_iso()),
+            provenance=prov_dict, trust=raw.get("trust", 0.5))
 
 
 _LLM_PROMPT = """You normalize a raw record into ONE structured memory.

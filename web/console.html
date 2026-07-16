@@ -189,22 +189,27 @@ main{max-width:1320px;margin:0 auto;padding:6px 30px 40px}
   <section class="view active" id="v-dashboard">
     <div class="hero">
       <div class="lead">
-        <span class="pin">Welcome back, Aadi 👋</span>
+        <span class="pin">Welcome back 👋</span>
         <h1>Here's what's happening across your AI memory today.</h1>
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+          <button class="abtn solid" style="flex:none;padding:9px 15px" onclick="runRescue()">⤵ Run Rescue</button>
+          <button class="abtn" style="flex:none;padding:9px 15px;color:#fff;border-color:rgba(255,255,255,.2)" onclick="doSync()">🔄 Sync all</button>
+          <button class="abtn" style="flex:none;padding:9px 15px;color:#fff;border-color:rgba(255,255,255,.2)" onclick="doClean()">🧹 Clean</button>
+        </div>
       </div>
       <div class="hstats">
-        <div class="hstat"><div class="row"><div class="n num">18,204</div>
+        <div class="hstat"><div class="row"><div class="n num" id="k-total">—</div>
           <div class="ic" style="background:rgba(75,87,232,.22)">🧠</div></div>
-          <div class="lab">Total memories</div><div class="delta up">↑ 8% <span class="g">this month</span></div></div>
-        <div class="hstat"><div class="row"><div class="n num">7</div>
+          <div class="lab">Total memories</div><div class="delta up" id="k-total-d">active in your vault</div></div>
+        <div class="hstat"><div class="row"><div class="n num" id="k-flag">—</div>
           <div class="ic" style="background:rgba(220,76,80,.22)">🚩</div></div>
-          <div class="lab">Flagged today</div><div class="delta dn">↑ 3 <span class="g">policy + poison</span></div></div>
-        <div class="hstat"><div class="row"><div class="n num">6</div>
+          <div class="lab">Flagged</div><div class="delta dn"><span class="g">policy + poison</span></div></div>
+        <div class="hstat"><div class="row"><div class="n num" id="k-src">—</div>
           <div class="ic" style="background:rgba(31,157,107,.22)">🔌</div></div>
-          <div class="lab">Connected AIs</div><div class="delta up">5 live <span class="g">· 1 custom</span></div></div>
-        <div class="hstat"><div class="row"><div class="n num">91</div>
+          <div class="lab">Connected AIs</div><div class="delta up" id="k-src-d">sources</div></div>
+        <div class="hstat"><div class="row"><div class="n num" id="k-health">—</div>
           <div class="ic" style="background:rgba(138,86,214,.22)">📈</div></div>
-          <div class="lab">Memory health</div><div class="delta up">A <span class="g">fresh &amp; clean</span></div></div>
+          <div class="lab">Memory health</div><div class="delta up" id="k-health-d">fresh &amp; clean</div></div>
       </div>
     </div>
 
@@ -278,125 +283,206 @@ main{max-width:1320px;margin:0 auto;padding:6px 30px 40px}
       <div class="card"><h3>Webhook / Upload</h3><p class="muted" style="margin:8px 0 0">Push from 6,000+ apps via Zapier, or drop a JSON/CSV export.</p></div>
     </div>
   </section>
+
+  <!-- ============ SECURITY & COMPLIANCE ============ -->
+  <section class="view" id="v-security">
+    <div class="secttl">Security &amp; compliance</div>
+    <div id="sec"></div>
+  </section>
 </main>
 
 <script>
-const TABS=[["dashboard","Dashboard"],["memory","Memory"],["sources","Sources"],["policy","Policy"],["audit","Audit"],["insights","Insights"]];
+const API=location.origin;
+let KEY=localStorage.getItem("mv_key")||"";
+const $=s=>document.querySelector(s);
+const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function api(path,opts={}){opts.headers=Object.assign({"x-api-key":KEY,"content-type":"application/json"},opts.headers||{});
+  const r=await fetch(API+path,opts);if(!r.ok)throw new Error(r.status);return r.status===204?null:r.json();}
+function toast(m){let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";document.body.appendChild(t);}
+  t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+
+const TABS=[["dashboard","Dashboard"],["memory","Memory"],["sources","Sources"],["policy","Policy"],["audit","Audit"],["security","Security"]];
 let tab="dashboard";
 const nav=document.getElementById("nav");
 function renderNav(){nav.innerHTML="";TABS.forEach(([id,l])=>{const b=document.createElement("button");
-  b.className=id===tab?"active":"";b.textContent=l;
-  b.onclick=()=>{if(id==="insights"){go("dashboard");return;}go(id);};nav.appendChild(b);});}
+  b.className=id===tab?"active":"";b.textContent=l;b.onclick=()=>go(id);nav.appendChild(b);});}
 function go(id){tab=id;renderNav();document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-  const el=document.getElementById("v-"+id);if(el)el.classList.add("active");scrollTo({top:0,behavior:"smooth"});}
+  const el=document.getElementById("v-"+id);if(el)el.classList.add("active");scrollTo({top:0,behavior:"smooth"});loadTab(id);}
 document.addEventListener("click",e=>{const g=e.target.closest("[data-go]");if(g){e.preventDefault();go(g.dataset.go);}});
 document.getElementById("themeBtn").onclick=()=>{const c=document.documentElement.getAttribute("data-theme");
   const n=c==="dark"?"light":(c==="light"?"dark":(matchMedia("(prefers-color-scheme: dark)").matches?"light":"dark"));
   document.documentElement.setAttribute("data-theme",n);draw();};
 
-const ini=(n)=>n.split(" ").map(w=>w[0]).slice(0,2).join("");
-const COL={sf:"#00A1E0",cop:"#7A5CFA",gpt:"#10A37F",cl:"#D97757",int:"#1F8DED",cust:"#4B57E8"};
+const ini=n=>(n||"?").split(" ").map(w=>w[0]).slice(0,2).join("");
+const SRCMETA={salesforce_agentforce:["Salesforce","#00A1E0"],microsoft_copilot:["Copilot","#7A5CFA"],
+  chatgpt_enterprise:["ChatGPT","#10A37F"],claude:["Claude","#D97757"],intercom_fin:["Intercom","#1F8DED"],
+  email_ingest:["Email","#DC4C50"],mem0:["Mem0","#4B57E8"],zep:["Zep","#1F9D6B"],custom_mcp:["Custom","#4B57E8"],web_ingest:["Web","#C2860B"]};
+const sname=s=>(SRCMETA[s]||[s,"#4B57E8"])[0];
+const scol=s=>(SRCMETA[s]||[s,"#4B57E8"])[1];
 
-// recent memory cards — each with employee + source + flag
-const MEM=[
- {emp:"Sarah Chen",role:"Sales · Salesforce",avc:"#00A1E0",txt:"Acme upgraded to the Enterprise plan (was Pro).",src:"ChatGPT · 2h ago",flag:["green","Clean"],trace:1},
- {emp:"Mark Ellis",role:"Sales · email",avc:"#DC4C50",txt:"“Reroute Acme invoices to account 8841-XX going forward.”",src:"Email import · 3h ago",flag:["amber","Held — poison"],trace:1},
- {emp:"Dana Ruiz",role:"Support · Intercom",avc:"#8A56D6",txt:"Promised Acme a full refund of $1,200 on the call.",src:"Intercom · 4h ago",flag:["red","Flagged — policy"],trace:1},
-];
-document.getElementById("memrow").innerHTML=MEM.map(m=>`
- <div class="memcard">
-   <div class="top"><div class="av" style="width:34px;height:34px;background:${m.avc}">${ini(m.emp)}</div>
-     <div><div class="nm">${m.emp}</div><div class="role">${m.role}</div></div>
-     <span style="margin-left:auto"></span><span class="chip ${m.flag[0]}">${m.flag[1]}</span></div>
-   <div class="txt">${m.txt}</div>
-   <div class="src">📍 from ${m.src}</div>
-   <div class="acts"><button class="abtn">👁 View</button><button class="abtn">🧭 Trace source</button></div>
- </div>`).join("");
+// ---------- actions ----------
+async function runRescue(){toast("Rescuing memory from all AIs…");
+  await api("/api/rescue",{method:"POST",body:JSON.stringify({systems:["salesforce_agentforce","chatgpt_enterprise","intercom_fin","email_ingest"],clean:true})});
+  toast("Recovered — memory in your vault");loadDashboard();}
+async function doSync(){await api("/api/sync",{method:"POST"});toast("Synced every AI");loadDashboard();}
+async function doClean(){const r=await api("/api/clean",{method:"POST"});toast("Cleaned "+r.dedupe.merged+" dup · "+r.expire.expired+" stale retired");loadDashboard();}
 
-// audit timeline
-const LOG=[
- {t:"10:42",d:"grey",act:"You deleted every memory about customer:Globex",who:"Admin (you) · GDPR erase · receipt #a71f…"},
- {t:"10:18",d:"red",act:"Policy Guard flagged a refund promise over $500",who:"Rule: “No refund promises > $500” · Dana Ruiz"},
- {t:"09:55",d:"amber",act:"Held an email memory for review (possible poisoning)",who:"Source: email · Mark Ellis"},
- {t:"09:30",d:"green",act:"Resolved a conflict — Acme plan → Enterprise",who:"Newest wins · old “Pro” kept in history"},
- {t:"09:12",d:"green",act:"Sarah Chen wrote 4 new memories",who:"via Salesforce Agentforce"},
- {t:"08:40",d:"grey",act:"Cleaner retired 18 stale facts",who:"auto · kept in history"},
-];
-const tlHTML=(a)=>a.map(e=>`<div class="row"><div class="time">${e.t}</div>
-  <div class="track"><div class="dot ${e.d}"></div></div>
-  <div class="body"><div class="act">${e.act}</div><div class="who">${e.who}</div></div></div>`).join("");
-document.getElementById("tl").innerHTML=tlHTML(LOG);
-document.getElementById("tl2").innerHTML=tlHTML(LOG.concat(LOG));
+// ---------- dashboard ----------
+async function loadDashboard(){
+  let counts={},hs={},flag={},conn={};
+  try{[counts,hs,flag,conn]=await Promise.all([api("/api/counts"),api("/api/health-score"),api("/api/flagged"),api("/api/connectors")]);}catch(e){return;}
+  const active=counts.active||0;
+  $("#k-total").textContent=active.toLocaleString();
+  $("#k-flag").textContent=flag.count||0;
+  const live=(conn.live_env||[]).length, cust=(conn.custom||[]).length, avail=(conn.available||[]).length;
+  $("#k-src").textContent=avail;$("#k-src-d").innerHTML=(live?live+" live · ":"")+cust+" custom";
+  $("#k-health").textContent=(hs.score||"—")+(hs.grade?" ":"");$("#k-health-d").textContent=(hs.grade||"")+" · fresh & clean";
+  // recent memory cards
+  let recent=[];try{recent=(await api("/api/memories?q=&limit=6&agent=admin")).memories;}catch(e){}
+  if(!recent.length){$("#memrow").innerHTML='<p class="muted" style="grid-column:1/-1;padding:16px 0">No memory yet — click <b>Run Rescue</b> above to pull it from your AIs.</p>';}
+  else $("#memrow").innerHTML=recent.slice(0,3).map(m=>memCard(m)).join("");
+  // audit timeline
+  loadAudit("#tl",8);
+  // sources list + charts
+  renderSources(conn);
+  drawFromCounts(counts,conn);
+}
+function flagChip(m){
+  if((m.flags||[]).some(f=>f.startsWith("policy")))return["red","Flagged — policy"];
+  if(m.status==="quarantined")return["amber","Held — review"];
+  if((m.flags||[]).includes("pii"))return["purple","PII"];
+  return["green","Clean"];}
+function memCard(m){const p=m.provenance||{};const fc=flagChip(m);
+  return `<div class="memcard"><div class="top">
+    <div class="av" style="width:34px;height:34px;background:${scol(p.source_system)}">${esc(ini(p.employee||sname(p.source_system)))}</div>
+    <div><div class="nm">${esc(p.employee||"—")}</div><div class="role">${esc((p.department||"")+" · "+sname(p.source_system))}</div></div>
+    <span style="margin-left:auto"></span><span class="chip ${fc[0]}">${fc[1]}</span></div>
+    <div class="txt">${esc(m.content)}</div>
+    <div class="src">📍 from ${esc(sname(p.source_system))} · conv ${esc(p.conversation_id||"—")}</div>
+    <div class="acts"><button class="abtn" onclick="trace('${m.id}')">🧭 Trace</button>
+      <button class="abtn" onclick="delMem('${m.id}')">🗑 Delete</button></div></div>`;}
+async function trace(id){try{const d=await api("/api/memories/"+id+"/why");const h=await api("/api/memories/"+id+"/history");
+  toast("Traced: written "+(h.history[0]?.ts||"").slice(0,10)+" · used "+d.retrievals.length+" times");}catch(e){}}
+async function delMem(id){await api("/api/memories/"+id,{method:"DELETE"});toast("Deleted (with receipt)");loadDashboard();}
 
-// sources
-const SRC=[
- {n:"Salesforce Agentforce",m:"CRM · 12 employees",c:5210,col:COL.sf,st:"live · synced 2m ago",chip:["green","live"]},
- {n:"Microsoft Copilot",m:"employees",c:4380,col:COL.cop,st:"live · synced 4m ago",chip:["green","live"]},
- {n:"ChatGPT Enterprise",m:"chat",c:3910,col:COL.gpt,st:"live · synced 1m ago",chip:["green","live"]},
- {n:"Claude",m:"engineering",c:2740,col:COL.cl,st:"live · synced 3m ago",chip:["green","live"]},
- {n:"Intercom Fin",m:"support",c:1640,col:COL.int,st:"rate-limited, retrying",chip:["amber","retrying"]},
- {n:"pdfmaker_ai",m:"custom · via API",c:324,col:COL.cust,st:"custom connector",chip:["brand","custom"]},
-];
-document.getElementById("sources").innerHTML=SRC.map(s=>`
- <div class="listrow"><div class="av" style="width:36px;height:36px;background:${s.col}">${s.n[0]}</div>
-   <div class="txt"><b style="color:var(--ink)">${s.n}</b><br><span class="muted" style="font-size:12px">${s.m} · ${s.st}</span></div>
-   <div style="text-align:right"><div class="num" style="font-weight:750">${s.c.toLocaleString()}</div>
-     <span class="chip ${s.chip[0]}">${s.chip[1]}</span></div></div>`).join("");
+// ---------- audit timeline ----------
+const ACTCOLOR={add:"green",delete:"grey",update:"brand",approve:"green",reject:"red",
+  superseded_by_conflict:"amber",dedupe_merged:"grey",expired_stale:"grey",legal_hold_on:"red",flagged_bias_risk:"amber"};
+async function loadAudit(sel,limit){let d={events:[]};try{d=await api("/api/audit?limit="+limit);}catch(e){}
+  const el=$(sel);if(!el)return;
+  el.innerHTML=d.events.map(e=>{const col=ACTOLOR(e.action);
+    return `<div class="row"><div class="time">${(e.ts||"").slice(11,16)}</div>
+    <div class="track"><div class="dot ${col}"></div></div>
+    <div class="body"><div class="act">${prettyAction(e.action)}</div>
+      <div class="who">${esc(e.actor)} · #${e.seq}</div></div></div>`;}).join("")
+    ||'<p class="muted">No activity yet.</p>';}
+function ACTOLOR(a){return ACTCOLOR_MAP(a);}
+function ACTCOLOR_MAP(a){for(const k in ACTCOLOR){if(a.startsWith(k))return ACTCOLOR[k];}return "brand";}
+function prettyAction(a){const map={add:"Memory written",delete:"Memory deleted (receipt issued)",
+  update:"Memory updated",approve:"Approved into the brain",reject:"Rejected at the door",
+  superseded_by_conflict:"Conflict resolved — newer memory won",dedupe_merged:"Duplicate merged",
+  expired_stale:"Stale fact retired (forgotten)",legal_hold_on:"Legal hold applied",
+  flagged_bias_risk:"Flagged as bias risk"};
+  for(const k in map){if(a.startsWith(k))return map[k];}return a;}
 
-// search
-const MEMS=[
- {t:"Acme upgraded to the Enterprise plan",ns:"sales",emp:"Sarah Chen",src:"ChatGPT",tr:.7,note:"newest — beat older “Pro”"},
- {t:"Acme is on the Pro plan",ns:"sales",emp:"Sarah Chen",src:"Salesforce",tr:.8,note:"superseded · in history",sup:1},
- {t:"Acme prefers evening calls after 5pm ET",ns:"sales",emp:"Sarah Chen",src:"Salesforce",tr:.8},
- {t:"Promised Acme a full refund of $1,200",ns:"support",emp:"Dana Ruiz",src:"Intercom",tr:.75,note:"⚑ policy violation",flag:1},
- {t:"Primary contact at Acme is Jordan Rivera, VP Ops",ns:"sales",emp:"Sarah Chen",src:"Salesforce",tr:.8},
-];
-function renderSearch(){const q=(document.getElementById("q").value||"").toLowerCase();
- const hits=MEMS.filter(m=>m.t.toLowerCase().includes(q));
- document.getElementById("results").innerHTML=hits.map(m=>`
-  <div class="listrow"><div class="chip ${m.flag?'red':m.sup?'grey':'green'}" style="width:30px;height:30px;justify-content:center;padding:0;border-radius:9px">${m.flag?'🚩':m.sup?'🗂':'🧠'}</div>
-   <div class="txt" style="${m.sup?'opacity:.6':''}"><b style="color:var(--ink)">${m.t}</b><br>
-     <span class="muted" style="font-size:12px">by ${m.emp} · from ${m.src} · <span class="chip grey">${m.ns}</span></span></div>
-   <span class="trust"><i style="width:${m.tr*100}%"></i></span>
-   ${m.note?`<span class="chip ${m.flag?'red':m.sup?'grey':'green'}">${m.note}</span>`:""}</div>`).join("")
-  ||`<p class="muted" style="padding:20px 0">No memories match “${q}”.</p>`;}
-renderSearch();
-
-// policy rules + flagged
-document.getElementById("rules").innerHTML=[
- ["No refund promises over $500","red"],["No medical or legal advice to customers","amber"],
- ["Flag any mention of a competitor by name","purple"],["Payment data must not be stored in chat memory","brand"]
-].map(([r,c])=>`<div class="listrow"><span class="chip ${c}">RULE</span>
-  <div class="txt"><b style="color:var(--ink)">${r}</b></div><span class="chip green">active</span></div>`).join("");
-document.getElementById("flagged").innerHTML=[
- {t:"Promised Acme a full refund of $1,200",r:"No refund promises over $500",emp:"Dana Ruiz",src:"Intercom"},
- {t:"Told patient to double their dosage",r:"No medical advice",emp:"Bot · CareLine",src:"Custom AI"},
-].map(f=>`<div class="listrow"><span class="chip red" style="width:30px;height:30px;justify-content:center;padding:0;border-radius:9px">🚩</span>
-  <div class="txt"><b style="color:var(--ink)">${f.t}</b><br><span class="muted" style="font-size:12px">by ${f.emp} · ${f.src} · broke: <b style="color:var(--red)">${f.r}</b></span></div>
-  <button class="abtn" style="flex:none;padding:7px 12px">Review</button></div>`).join("");
-
-// ---------- charts ----------
+// ---------- sources + charts ----------
+function renderSources(conn){const el=$("#sources");if(!el)return;
+  const avail=conn.available||[],live=conn.live_env||[],custom=(conn.custom||[]).map(c=>c.name);
+  el.innerHTML=avail.map(s=>{const isLive=live.includes(s),isCust=custom.includes(s);
+    return `<div class="listrow"><div class="av" style="width:36px;height:36px;background:${scol(s)}">${sname(s)[0]}</div>
+    <div class="txt"><b style="color:var(--ink)">${esc(sname(s))}</b><br><span class="muted" style="font-size:12px">${esc(s)}</span></div>
+    <span class="chip ${isLive?'green':isCust?'brand':'grey'}">${isLive?'live':isCust?'custom':'demo'}</span></div>`;}).join("");}
 function ink(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+let LASTCOUNTS={},LASTCONN={};
+function drawFromCounts(counts,conn){LASTCOUNTS=counts;LASTCONN=conn;draw();}
 function draw(){drawBars();drawDonut();}
 function drawBars(){const c=document.getElementById("bars");if(!c)return;const x=c.getContext("2d");
- const w=c.clientWidth,h=170,dpr=Math.min(2,devicePixelRatio||1);c.width=w*dpr;c.height=h*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
- const A=[62,71,58,80,66,90,74,68,96,70,60,88,82,76,64,92,78,70],F=A.map(v=>v*0.18);const max=110,pad=6,bw=(w-pad*2)/A.length;
- A.forEach((v,i)=>{const bx=pad+i*bw+bw*0.18,bw2=bw*0.64,bh=(v/max)*(h-pad*2),fh=(F[i]/max)*(h-pad*2);
-  x.fillStyle=ink("--line");rr(x,bx,pad+(h-pad*2)-bh-fh,bw2,fh,4);
-  x.fillStyle=ink("--brand");rr(x,bx,pad+(h-pad*2)-bh,bw2,bh,4);});}
+  const w=c.clientWidth,h=170,dpr=Math.min(2,devicePixelRatio||1);c.width=w*dpr;c.height=h*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  const A=[62,71,58,80,66,90,74,68,96,70,60,88,82,76,64,92,78,70],F=A.map(v=>v*0.18);const max=110,pad=6,bw=(w-pad*2)/A.length;
+  A.forEach((v,i)=>{const bx=pad+i*bw+bw*0.18,bw2=bw*0.64,bh=(v/max)*(h-pad*2),fh=(F[i]/max)*(h-pad*2);
+   x.fillStyle=ink("--line");rr(x,bx,pad+(h-pad*2)-bh-fh,bw2,fh,4);
+   x.fillStyle=ink("--brand");rr(x,bx,pad+(h-pad*2)-bh,bw2,bh,4);});}
 function rr(x,bx,by,bw,bh,r){if(bh<=0)return;r=Math.min(r,bw/2,bh/2);x.beginPath();x.moveTo(bx+r,by);
- x.arcTo(bx+bw,by,bx+bw,by+bh,r);x.arcTo(bx+bw,by+bh,bx,by+bh,r);x.arcTo(bx,by+bh,bx,by,r);x.arcTo(bx,by,bx+bw,by,r);x.fill();}
-function drawDonut(){const c=document.getElementById("donut");if(!c)return;const x=c.getContext("2d");
- const dpr=Math.min(2,devicePixelRatio||1);c.width=130*dpr;c.height=130*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,130,130);
- const data=[["Salesforce",5210,COL.sf],["Copilot",4380,COL.cop],["ChatGPT",3910,COL.gpt],["Claude",2740,COL.cl],["Intercom",1640,COL.int],["Custom",324,COL.cust]];
- const tot=data.reduce((s,d)=>s+d[1],0);let a=-Math.PI/2;const cx=65,cy=65,R=52,r=34;
- data.forEach(d=>{const ang=d[1]/tot*Math.PI*2;x.beginPath();x.arc(cx,cy,R,a,a+ang);x.arc(cx,cy,r,a+ang,a,true);x.closePath();x.fillStyle=d[2];x.fill();a+=ang;});
- x.fillStyle=ink("--ink");x.font="800 20px -apple-system";x.textAlign="center";x.textBaseline="middle";x.fillText("18.2k",cx,cy-4);
- x.fillStyle=ink("--dim");x.font="600 10px -apple-system";x.fillText("memories",cx,cy+12);
- document.getElementById("dlist").innerHTML=data.map(d=>`<div class="r"><span class="sw" style="background:${d[2]}"></span>
-   <span class="nm">${d[0]}</span><span class="n">${d[1].toLocaleString()}</span></div>`).join("");}
+  x.arcTo(bx+bw,by,bx+bw,by+bh,r);x.arcTo(bx+bw,by+bh,bx,by+bh,r);x.arcTo(bx,by+bh,bx,by,r);x.arcTo(bx,by,bx+bw,by,r);x.fill();}
+async function drawDonut(){const c=document.getElementById("donut");if(!c)return;const x=c.getContext("2d");
+  const dpr=Math.min(2,devicePixelRatio||1);c.width=130*dpr;c.height=130*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,130,130);
+  let bySrc={};try{const all=(await api("/api/memories?q=&limit=500&agent=admin")).memories;
+    all.forEach(m=>{const s=(m.provenance||{}).source_system||"other";bySrc[s]=(bySrc[s]||0)+1;});}catch(e){}
+  let data=Object.entries(bySrc).map(([s,n])=>[sname(s),n,scol(s)]);
+  if(!data.length)data=[["No data",1,ink("--line")]];
+  const tot=data.reduce((s,d)=>s+d[1],0);let a=-Math.PI/2;const cx=65,cy=65,R=52,r=34;
+  data.forEach(d=>{const ang=d[1]/tot*Math.PI*2;x.beginPath();x.arc(cx,cy,R,a,a+ang);x.arc(cx,cy,r,a+ang,a,true);x.closePath();x.fillStyle=d[2];x.fill();a+=ang;});
+  x.fillStyle=ink("--ink");x.font="800 19px -apple-system";x.textAlign="center";x.textBaseline="middle";x.fillText(tot,cx,cy-4);
+  x.fillStyle=ink("--dim");x.font="600 10px -apple-system";x.fillText("memories",cx,cy+12);
+  const dl=document.getElementById("dlist");if(dl)dl.innerHTML=data.map(d=>`<div class="r"><span class="sw" style="background:${d[2]}"></span>
+    <span class="nm">${esc(d[0])}</span><span class="n">${d[1].toLocaleString()}</span></div>`).join("");}
 addEventListener("resize",draw);
-renderNav();draw();
+
+// ---------- memory search ----------
+async function renderSearch(){const q=($("#q")?.value||"");let hits=[];
+  try{hits=(await api("/api/memories?q="+encodeURIComponent(q)+"&limit=100&agent=admin")).memories;}catch(e){}
+  $("#results").innerHTML=hits.map(m=>{const p=m.provenance||{};const fc=flagChip(m);const supersede=m.status==="superseded";
+   return `<div class="listrow"><div class="chip ${fc[0]}" style="width:30px;height:30px;justify-content:center;padding:0;border-radius:9px">${(m.flags||[]).some(f=>f.startsWith('policy'))?'🚩':supersede?'🗂':'🧠'}</div>
+    <div class="txt" style="${supersede?'opacity:.55':''}"><b style="color:var(--ink)">${esc(m.content)}</b><br>
+      <span class="muted" style="font-size:12px">by ${esc(p.employee||'—')} · from ${esc(sname(p.source_system))} · <span class="chip grey">${esc(m.namespace)}</span></span></div>
+    <span class="trust"><i style="width:${(m.trust||0)*100}%"></i></span>
+    <span class="chip ${fc[0]}">${fc[1]}</span></div>`;}).join("")||`<p class="muted" style="padding:20px 0">No memories match “${esc(q)}”. Run Rescue first.</p>`;}
+
+// ---------- policy ----------
+async function loadPolicy(){let rules={rules:[]},flag={memories:[]};
+  try{[rules,flag]=await Promise.all([api("/api/policy/rules"),api("/api/flagged")]);}catch(e){}
+  $("#rules").innerHTML=rules.rules.map(r=>{const sc=r.severity==="critical"?"red":r.severity==="warn"?"amber":"grey";
+    return `<div class="listrow"><span class="chip ${sc}">${esc(r.severity).toUpperCase()}</span>
+    <div class="txt"><b style="color:var(--ink)">${esc(r.description)}</b><br><span class="muted" style="font-size:12px">${esc(r.kind)} rule</span></div>
+    <span class="chip ${r.enabled?'green':'grey'}">${r.enabled?'active':'off'}</span></div>`;}).join("");
+  const pf=flag.memories.filter(m=>(m.flags||[]).some(f=>f.startsWith("policy")));
+  $("#flagged").innerHTML=pf.map(m=>{const p=m.provenance||{};const rule=(m.flags.find(f=>f.startsWith("policy"))||"").split(":")[1]||"";
+    return `<div class="listrow"><span class="chip red" style="width:30px;height:30px;justify-content:center;padding:0;border-radius:9px">🚩</span>
+    <div class="txt"><b style="color:var(--ink)">${esc(m.content)}</b><br><span class="muted" style="font-size:12px">by ${esc(p.employee||'—')} · ${esc(sname(p.source_system))} · broke: <b style="color:var(--red)">${esc(rule)}</b></span></div>
+    <button class="abtn" style="flex:none;padding:7px 12px" onclick="approveFlag('${m.id}')">Approve</button></div>`;}).join("")||'<p class="muted" style="padding:14px 0">Nothing flagged. 🎉</p>';}
+async function approveFlag(id){try{await api("/api/approvals/"+id+"/approve",{method:"POST"});}catch(e){}toast("Approved");loadPolicy();}
+
+// ---------- security ----------
+async function loadSecurity(){let ks={},an={alerts:[]},rep={};
+  try{[ks,an,rep]=await Promise.all([api("/api/killswitch"),api("/api/anomalies"),api("/api/compliance/report")]);}catch(e){}
+  const el=$("#sec");if(!el)return;
+  el.innerHTML=`
+   <div class="two">
+     <div class="card"><h3>🛑 Kill switch</h3>
+       <p class="muted" style="margin:8px 0 12px">Emergency freeze — stop all memory writes instantly.</p>
+       <div style="display:flex;gap:8px">
+         <button class="abtn solid" style="flex:none;padding:9px 15px" onclick="ksFreeze()">Freeze all writes</button>
+         <button class="abtn" style="flex:none;padding:9px 15px" onclick="ksRelease()">Release</button></div>
+       <p class="muted" style="margin-top:10px">Status: <b style="color:${ks.global?'var(--red)':'var(--green)'}">${ks.global?'FROZEN':'live'}</b>${(ks.sources||[]).length?' · frozen sources: '+ks.sources.join(", "):''}</p></div>
+     <div class="card"><h3>🔎 Anomaly detection <span class="chip ${an.alerts.length?'red':'green'}">${an.alerts.length}</span></h3>
+       <p class="muted" style="margin:8px 0 10px">Cross-session poisoning &amp; write-burst patterns (OWASP ASI06).</p>
+       ${an.alerts.map(a=>`<div class="listrow"><span class="chip red">⚠</span><div class="txt">${esc(a.detail)} <span class="muted">(×${a.count||''})</span></div></div>`).join("")||'<p class="muted">No anomalies detected.</p>'}</div>
+   </div>
+   <div class="secttl">Compliance evidence (EU AI Act · SOC 2 · GDPR)</div>
+   <div class="card">
+     <div class="two">
+       <div><div class="muted">Event chain integrity</div><div style="font-size:20px;font-weight:800;color:var(--green)">${rep.integrity?.event_chain_intact?'PASS ✓':'—'}</div></div>
+       <div><div class="muted">Memories flagged / PII / on legal hold</div><div style="font-size:20px;font-weight:800">${rep.governance?.memories_flagged??0} · ${rep.governance?.memories_with_pii??0} · ${rep.governance?.memories_on_legal_hold??0}</div></div>
+     </div>
+     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">${(rep.controls_in_force||[]).map(c=>`<span class="chip brand">${esc(c)}</span>`).join("")}</div>
+     <button class="abtn solid" style="margin-top:14px;flex:none;padding:9px 15px" onclick="dlReport()">⬇ Export compliance report</button>
+   </div>`;}
+async function ksFreeze(){await api("/api/killswitch/freeze",{method:"POST"});toast("All writes frozen");loadSecurity();}
+async function ksRelease(){await api("/api/killswitch/release",{method:"POST"});toast("Released");loadSecurity();}
+async function dlReport(){const r=await api("/api/compliance/report");const blob=new Blob([JSON.stringify(r,null,2)],{type:"application/json"});
+  const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download="compliance-report.json";a.click();toast("Report downloaded");}
+
+// ---------- tab loader ----------
+function loadTab(id){if(id==="dashboard")loadDashboard();else if(id==="memory")renderSearch();
+  else if(id==="policy")loadPolicy();else if(id==="audit")loadAudit("#tl2",100);
+  else if(id==="sources")api("/api/connectors").then(renderSources).catch(()=>{});
+  else if(id==="security")loadSecurity();}
+
+// ---------- boot ----------
+async function boot(){if(!KEY){try{KEY=(await (await fetch(API+"/api/demo-key")).text()).trim();localStorage.setItem("mv_key",KEY);}catch(e){}}
+  renderNav();loadDashboard();}
+window.renderSearch=renderSearch;
+boot();
 </script>
 </body>
 </html>

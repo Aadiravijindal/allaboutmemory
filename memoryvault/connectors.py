@@ -56,6 +56,10 @@ class Connector:
             agent_id=raw.get("agent_id", self.system),
             channel=raw.get("channel", prof["channel"]),
             author=raw.get("author", ""),
+            employee=raw.get("employee", ""),
+            employee_email=raw.get("employee_email", ""),
+            department=raw.get("department", ""),
+            conversation_id=raw.get("conversation_id", ""),
             occurred_at=resolve_date(raw.get("occurred_at", now_iso())),
         )
         return MemoryUnit(

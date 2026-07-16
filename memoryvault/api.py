@@ -581,13 +581,23 @@ async def demo_key():
     return DEMO_KEY
 
 
-@app.get("/", response_class=HTMLResponse)
-async def spa():
-    ui = os.path.join(os.path.dirname(__file__), "..", "web", "index.html")
+def _serve(name: str) -> str:
+    ui = os.path.join(os.path.dirname(__file__), "..", "web", name)
     if os.path.exists(ui):
         with open(ui) as f:
             return f.read()
     return "<h1>MemoryVault API</h1><p>See /api/docs</p>"
+
+
+@app.get("/", response_class=HTMLResponse)
+async def spa():
+    """The enterprise console — the primary product UI."""
+    return _serve("console.html")
+
+
+@app.get("/classic", response_class=HTMLResponse)
+async def classic():
+    return _serve("index.html")
 
 
 def main():  # pragma: no cover
