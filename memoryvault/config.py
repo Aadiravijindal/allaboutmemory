@@ -11,7 +11,17 @@ runs on safe local defaults.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
+
+
+def _strip_inline_comment(v: str) -> str:
+    """Remove a trailing ' # comment' from a value. A value that is only a
+    comment (or blank) resolves to empty."""
+    v = v.strip()
+    if v.startswith("#"):
+        return ""
+    return re.split(r"\s+#", v, 1)[0].strip()
 
 
 def _load_dotenv(path: str = ".env"):
@@ -24,15 +34,25 @@ def _load_dotenv(path: str = ".env"):
             if not line or line.startswith("#") or "=" not in line:
                 continue
             k, v = line.split("=", 1)
-            k, v = k.strip(), v.strip().strip('"').strip("'")
-            os.environ.setdefault(k, v)
+            v = _strip_inline_comment(v.strip()).strip('"').strip("'")
+            os.environ.setdefault(k.strip(), v)
 
 
 _load_dotenv(os.environ.get("MV_ENV_FILE", ".env"))
 
 
 def _b(name: str, default=False) -> bool:
-    return os.environ.get(name, str(default)).lower() in ("1", "true", "yes")
+    v = _strip_inline_comment(os.environ.get(name, str(default)))
+    return v.lower() in ("1", "true", "yes")
+
+
+def _int(name: str, default: int) -> int:
+    """Defensive int env read — tolerates stray comments/whitespace."""
+    raw = _strip_inline_comment(os.environ.get(name, str(default)))
+    try:
+        return int(raw)
+    except (ValueError, TypeError):
+        return default
 
 
 @dataclass
@@ -76,7 +96,7 @@ class Config:
     temporal_host: str = os.environ.get("MV_TEMPORAL_HOST", "")
 
     # ---- runtime -------------------------------------------------------
-    sync_interval_seconds: int = int(os.environ.get("MV_SYNC_INTERVAL", "3600"))
+    sync_interval_seconds: int = _int("MV_SYNC_INTERVAL", 3600)
 
     def activated(self) -> dict:
         """What's live vs demo — powers the `setup` status screen."""
