@@ -71,11 +71,18 @@ UNTRUSTED_CHANNELS = {"email", "web", "upload", "external_doc"}
 
 @dataclass
 class Provenance:
-    """The memory's ID card: where it came from (Feature 1.2)."""
+    """The memory's ID card: where it came from (Feature 1.2), now with
+    full enterprise attribution — which employee, which account, which
+    conversation, from which AI, when."""
     source_system: str = "manual"   # e.g. "salesforce_agentforce", "chatgpt"
     agent_id: str = "unknown"       # which agent wrote it
     channel: str = "unknown"        # "call", "chat", "email", "web", "upload"
     author: str = ""                # human/system behind it, if known
+    employee: str = ""              # the employee/user account responsible
+    employee_email: str = ""        # their email (for audit/attribution)
+    department: str = ""            # e.g. "sales", "support"
+    conversation_id: str = ""       # which chat/session it came from
+    ip: str = ""                    # origin IP, if captured
     occurred_at: str = field(default_factory=now_iso)
 
     def to_dict(self) -> dict:
@@ -104,6 +111,12 @@ class MemoryUnit:
     version: int = 1
     supersedes: Optional[str] = None
     bias_risk: bool = False         # set by the yes-man filter (7.4)
+    # ---- enterprise governance fields ----
+    tier: str = "team"              # personal | team | company (memory tiers)
+    flags: list = field(default_factory=list)   # policy/PII/security flags
+    legal_hold: bool = False        # frozen for litigation — cannot be deleted
+    pii_types: list = field(default_factory=list)  # detected PII categories
+    redacted: bool = False          # whether content was PII-redacted
 
     def __post_init__(self):
         if self.expires_at is None:

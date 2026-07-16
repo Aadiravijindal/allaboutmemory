@@ -347,6 +347,119 @@ async def counts(key=Depends(require("read"))):
     return cp.vault_for(key.org).counts()
 
 
+# ======================================================================
+#  ENTERPRISE GOVERNANCE
+# ======================================================================
+from .governance import (KillSwitch, apply_legal_hold, siem_export,
+                         detect_anomalies, compliance_report)  # noqa: E402
+from .policy_guard import Rule  # noqa: E402
+killswitch = KillSwitch(DATA_DIR)
+
+
+# ---- flagged memories (policy / PII / security) ----------------------
+@app.get("/api/flagged")
+async def flagged(key=Depends(require("read"))):
+    v = cp.vault_for(key.org)
+    out = []
+    for m in v.all_memories():
+        if getattr(m, "flags", []):
+            d = m.to_dict()
+            out.append({"id": m.id, "content": m.content, "flags": m.flags,
+                        "status": m.status, "pii_types": m.pii_types,
+                        "provenance": m.provenance, "tier": m.tier})
+    return {"count": len(out), "memories": out}
+
+
+# ---- Policy Guard rules (company rulebook) ---------------------------
+@app.get("/api/policy/rules")
+async def policy_rules(key=Depends(require("read"))):
+    return {"rules": cp.vault_for(key.org).policy_guard.list_rules()}
+
+
+class RuleIn(BaseModel):
+    id: str
+    description: str
+    kind: str = "keyword"
+    config: dict = {}
+    severity: str = "warn"
+
+
+@app.post("/api/policy/rules")
+async def add_policy_rule(r: RuleIn, key=Depends(require("admin"))):
+    cp.vault_for(key.org).policy_guard.add_rule(
+        Rule(r.id, r.description, r.kind, r.config, r.severity))
+    cp.audit(key.org, key.name or key.role, "add_policy_rule", {"id": r.id})
+    return {"added": r.id}
+
+
+@app.delete("/api/policy/rules/{rule_id}")
+async def del_policy_rule(rule_id: str, key=Depends(require("admin"))):
+    cp.vault_for(key.org).policy_guard.remove_rule(rule_id)
+    return {"removed": rule_id}
+
+
+# ---- legal hold ------------------------------------------------------
+@app.post("/api/legal-hold")
+async def legal_hold(subject: str, on: bool = True, key=Depends(require("admin"))):
+    res = apply_legal_hold(cp.vault_for(key.org), subject,
+                           actor=f"api:{key.role}", on=on)
+    cp.audit(key.org, key.name or key.role, "legal_hold", res)
+    return res
+
+
+# ---- kill switch -----------------------------------------------------
+@app.post("/api/killswitch/freeze")
+async def ks_freeze(source: str = None, key=Depends(require("admin"))):
+    killswitch.freeze(source)
+    cp.audit(key.org, key.name or key.role, "killswitch_freeze", {"source": source})
+    return killswitch.status()
+
+
+@app.post("/api/killswitch/release")
+async def ks_release(source: str = None, key=Depends(require("admin"))):
+    killswitch.release(source)
+    return killswitch.status()
+
+
+@app.get("/api/killswitch")
+async def ks_status(key=Depends(require("read"))):
+    return killswitch.status()
+
+
+# ---- SIEM export -----------------------------------------------------
+@app.get("/api/siem/export")
+async def siem(since: int = 0, fmt: str = "cef", key=Depends(require("admin"))):
+    return {"events": siem_export(cp.vault_for(key.org), since, fmt)}
+
+
+# ---- anomaly / poison detection --------------------------------------
+@app.get("/api/anomalies")
+async def anomalies(key=Depends(require("read"))):
+    return {"alerts": detect_anomalies(cp.vault_for(key.org))}
+
+
+# ---- compliance evidence report --------------------------------------
+@app.get("/api/compliance/report")
+async def compliance(key=Depends(require("admin"))):
+    return compliance_report(cp.vault_for(key.org), killswitch, key.org)
+
+
+# ---- audit log (who did what, when) ----------------------------------
+@app.get("/api/audit")
+async def audit_log(limit: int = 50, key=Depends(require("read"))):
+    v = cp.vault_for(key.org)
+    rows = v.db.execute(
+        "SELECT seq, ts, actor, action, memory_id FROM events "
+        "ORDER BY seq DESC LIMIT ?", (limit,)).fetchall()
+    return {"events": [dict(r) for r in rows]}
+
+
+# ---- cost / usage ----------------------------------------------------
+@app.get("/api/usage")
+async def usage(key=Depends(require("read"))):
+    return meter.summary(key.org)
+
+
 # ---- setup / status (what's activated by your keys) ------------------
 @app.get("/api/setup")
 async def setup_status(key=Depends(require("admin"))):

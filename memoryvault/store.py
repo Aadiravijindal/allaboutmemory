@@ -28,9 +28,12 @@ from .crypto import Cipher, LocalKeyProvider, HAVE_CRYPTO
 
 class Vault:
     def __init__(self, path: str = "vault.db", policy: Optional[Policy] = None,
-                 encrypt: bool = False):
+                 encrypt: bool = False, policy_guard=None, redact_pii: bool = False):
         self.path = path
         self.policy = policy or Policy()
+        # enterprise governance hooks (optional; lazy defaults)
+        self.policy_guard = policy_guard
+        self.redact_pii = redact_pii
         provider = None
         if encrypt and HAVE_CRYPTO:
             provider = LocalKeyProvider(path + ".key")
@@ -49,11 +52,15 @@ class Vault:
             tags TEXT, trust REAL, status TEXT, decay_class TEXT,
             occurred_at TEXT, ingested_at TEXT, expires_at TEXT,
             provenance TEXT, version INTEGER, supersedes TEXT,
-            bias_risk INTEGER DEFAULT 0
+            bias_risk INTEGER DEFAULT 0,
+            tier TEXT DEFAULT 'team', flags TEXT DEFAULT '[]',
+            legal_hold INTEGER DEFAULT 0, pii_types TEXT DEFAULT '[]',
+            redacted INTEGER DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS idx_mem_subject ON memories(subject, attribute);
         CREATE INDEX IF NOT EXISTS idx_mem_status ON memories(status);
         CREATE INDEX IF NOT EXISTS idx_mem_ns ON memories(namespace);
+        CREATE INDEX IF NOT EXISTS idx_mem_tier ON memories(tier);
 
         CREATE TABLE IF NOT EXISTS events (
             seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,6 +124,10 @@ class Vault:
         d["tags"] = json.dumps(d["tags"])
         d["provenance"] = json.dumps(d["provenance"])
         d["bias_risk"] = int(d["bias_risk"])
+        d["flags"] = json.dumps(d.get("flags", []))
+        d["pii_types"] = json.dumps(d.get("pii_types", []))
+        d["legal_hold"] = int(d.get("legal_hold", False))
+        d["redacted"] = int(d.get("redacted", False))
         cols = ",".join(d.keys())
         marks = ",".join("?" * len(d))
         self.db.execute(
@@ -136,11 +147,31 @@ class Vault:
         d["tags"] = json.loads(d["tags"] or "[]")
         d["provenance"] = json.loads(d["provenance"] or "{}")
         d["bias_risk"] = bool(d["bias_risk"])
+        d["flags"] = json.loads(d.get("flags") or "[]")
+        d["pii_types"] = json.loads(d.get("pii_types") or "[]")
+        d["legal_hold"] = bool(d.get("legal_hold"))
+        d["redacted"] = bool(d.get("redacted"))
         return MemoryUnit.from_dict(d)
 
     # ----------------------------------------------------------- write API
     def add(self, m: MemoryUnit, actor: str = "system") -> MemoryUnit:
-        """Write path: Rulebook check -> conflict fight -> event -> index."""
+        """Write path: PII scan -> Policy Guard -> Rulebook -> conflict ->
+        event -> index. Enterprise governance runs before anything is stored."""
+        # ---- PII detection & redaction (enterprise) ----
+        from .pii import scan_and_maybe_redact
+        m.content, m.pii_types, m.redacted = scan_and_maybe_redact(
+            m.content, self.redact_pii)
+        if m.pii_types and "pii" not in m.flags:
+            m.flags = list(m.flags) + ["pii"]
+        # ---- Policy Guard: flag company-rule violations (enterprise) ----
+        if self.policy_guard is not None:
+            violations = self.policy_guard.evaluate(m)
+            if violations:
+                m.flags = list(m.flags) + [f"policy:{v.rule_id}" for v in violations]
+                # a critical violation quarantines the memory for review
+                if any(v.severity == "critical" for v in violations) and \
+                        m.status == MemoryStatus.ACTIVE.value:
+                    m.status = MemoryStatus.QUARANTINED.value
         # 5.4 Approval Room decision
         if m.status == MemoryStatus.ACTIVE.value:
             m.status = self.policy.evaluate_write(m)
@@ -214,6 +245,10 @@ class Vault:
         m = self.get(memory_id)
         if not m:
             return None
+        # legal hold: frozen for litigation, cannot be deleted
+        if getattr(m, "legal_hold", False):
+            return {"blocked": True, "reason": "memory is under legal hold",
+                    "memory_id": memory_id}
         m.status = MemoryStatus.DELETED.value
         m.content = "[deleted]"
         self._put_row(m)
@@ -231,15 +266,20 @@ class Vault:
         rows = self.db.execute(
             "SELECT id FROM memories WHERE subject=? AND status!=?",
             (subject, MemoryStatus.DELETED.value)).fetchall()
-        ids = [r["id"] for r in rows]
-        for mid in ids:
-            m = self.get(mid)
+        erased, skipped_hold = [], []
+        for r in rows:
+            m = self.get(r["id"])
+            if getattr(m, "legal_hold", False):
+                skipped_hold.append(m.id)   # litigation freeze wins over erasure
+                continue
             m.status = MemoryStatus.DELETED.value
             m.content = "[deleted]"
             self._put_row(m)
             self._append_event(actor, "delete", m)
+            erased.append(m.id)
         receipt = self._issue_receipt("subject_erasure", {
-            "subject": subject, "memory_ids": ids, "actor": actor,
+            "subject": subject, "memory_ids": erased,
+            "skipped_legal_hold": skipped_hold, "actor": actor,
             "cascade": cascade_results or {"vault": "ok"},
         })
         self.db.commit()

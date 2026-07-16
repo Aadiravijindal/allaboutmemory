@@ -104,8 +104,12 @@ class ControlPlane:
         if org not in self._vaults:
             path = os.path.join(self.data_dir, f"tenant_{org}.db")
             policy = Policy.load(self.policy_path) if self.policy_path else Policy()
-            self._vaults[org] = Vault(path, policy=policy,
-                                      encrypt=bool(os.environ.get("MV_ENCRYPT")))
+            from .policy_guard import PolicyGuard
+            self._vaults[org] = Vault(
+                path, policy=policy,
+                encrypt=bool(os.environ.get("MV_ENCRYPT")),
+                policy_guard=PolicyGuard(),           # company-rule flagging on
+                redact_pii=bool(os.environ.get("MV_REDACT_PII")))
         return self._vaults[org]
 
     # ---- admin audit -----------------------------------------------------
