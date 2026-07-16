@@ -110,7 +110,7 @@ async function api(path, opts={}){
 }
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
-const TABS = ['Overview','Search','Approvals','Insights','Receipts'];
+const TABS = ['Overview','Search','Connect','Approvals','Insights','Receipts'];
 let tab='Overview';
 function renderNav(){
   $('#nav').innerHTML='';
@@ -129,7 +129,7 @@ async function refreshHealth(){
 
 async function route(){
   const v=$('#view');v.innerHTML='<div class="empty">Loading…</div>';
-  try{ await ({Overview,Search,Approvals,Insights,Receipts}[tab])(v); }
+  try{ await ({Overview,Search,Connect,Approvals,Insights,Receipts}[tab])(v); }
   catch(e){ v.innerHTML='<div class="empty">Set your API key to begin.</div>'; }
   refreshHealth();
 }
@@ -253,6 +253,45 @@ async function Approvals(v){
 }
 async function apr(id,ok){await api('/api/approvals/'+id+'/'+(ok?'approve':'reject'),{method:'POST'});
   toast(ok?'Approved into the brain':'Rejected');route();}
+
+// ---------- Connect ----------
+async function Connect(v){
+  const d=await api('/api/connectors');
+  const ingestUrl=location.origin+d.ingest_url;
+  const chips=d.available.map(a=>`<span class=pill>${a}${d.live_env.includes(a)?' ✓live':''}</span>`).join(' ')
+    + d.custom.map(cn=>`<span class='pill ok'>${cn.name} (custom)</span>`).join(' ');
+  v.innerHTML=`<h2>Connect any AI</h2>
+    <p>Not just the big ones — connect ANY tool: a PDF-maker AI, a transcription AI, anything. Three ways:</p>
+    <div class=card><h3>1 · Add any AI with an API</h3>
+      <p class=meta>Point us at any tool's API — no code.</p>
+      <div style='display:flex;flex-direction:column;gap:8px;max-width:460px'>
+        <input id=cn placeholder='Name (e.g. pdfmaker_ai)'>
+        <input id=cb placeholder='API base URL (https://api.tool.com)'>
+        <input id=cf placeholder='Which field holds the text? (e.g. summary)' value='content'>
+        <button class=btn onclick='addConn()'>Connect this AI</button>
+      </div></div>
+    <div class=card><h3>2 · Webhook inbox (push from anything)</h3>
+      <p class=meta>Any tool — directly or via Zapier/Make — POSTs what it learns here (works with 6000+ apps).</p>
+      <div class=meta style='word-break:break-all'>POST <code>${ingestUrl}</code><br>header <code>x-ingest-token: ${d.ingest_token.slice(0,18)}…</code></div>
+      <button class='btn grey' onclick="navigator.clipboard&&navigator.clipboard.writeText('${ingestUrl}');toast('URL copied')">Copy URL</button></div>
+    <div class=card><h3>3 · Upload an export</h3>
+      <p class=meta>Every tool can export something. Drop a JSON/CSV — we normalize it into memories.</p>
+      <input type=file id=cup onchange='doUpload()'></div>
+    <h3 style='margin-top:16px'>Connected AIs</h3><div>${chips}</div>`;
+}
+async function addConn(){
+  const name=$('#cn').value,base=$('#cb').value,field=$('#cf').value||'content';
+  if(!name||!base){toast('name + base URL required');return;}
+  await api('/api/connectors',{method:'POST',body:JSON.stringify({name,kind:'rest',
+    config:{base_url:base,extract_path:'/',field_map:{content:field}}})});
+  toast('Connected '+name);route();
+}
+async function doUpload(){
+  const f=$('#cup').files[0];if(!f)return;
+  const txt=await f.text();
+  const r=await fetch(API+'/api/upload',{method:'POST',headers:{'x-api-key':KEY,'x-filename':f.name},body:txt});
+  const j=await r.json();toast('Imported '+(j.added||0)+' memories');route();
+}
 
 // ---------- Insights ----------
 async function Insights(v){
