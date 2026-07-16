@@ -49,13 +49,14 @@ class Connector:
 
     def _wrap(self, raw: dict) -> MemoryUnit:
         """Translate a raw vendor record INTO the canonical schema."""
+        from .schema import resolve_date
         prof = self._profile()
         prov = Provenance(
             source_system=self.system,
             agent_id=raw.get("agent_id", self.system),
             channel=raw.get("channel", prof["channel"]),
             author=raw.get("author", ""),
-            occurred_at=raw.get("occurred_at", now_iso()),
+            occurred_at=resolve_date(raw.get("occurred_at", now_iso())),
         )
         return MemoryUnit(
             content=raw["content"],

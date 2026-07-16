@@ -18,6 +18,20 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def resolve_date(value: str) -> str:
+    """Resolve relative date tokens so demo fixtures never rot over time.
+    '-2d'/'-3h' -> that long before now; anything else returned unchanged.
+    """
+    if isinstance(value, str) and value.startswith("-") and value[-1] in "dh":
+        try:
+            n = int(value[1:-1])
+            delta = timedelta(days=n) if value[-1] == "d" else timedelta(hours=n)
+            return (datetime.now(timezone.utc) - delta).isoformat()
+        except ValueError:
+            return value
+    return value or now_iso()
+
+
 class MemoryType(str, Enum):
     FACT = "fact"              # verifiable statement: "customer plan = Pro"
     PREFERENCE = "preference"  # "prefers evening calls"

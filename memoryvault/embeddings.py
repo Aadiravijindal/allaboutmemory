@@ -11,6 +11,7 @@ runs INSIDE the customer's tenant on their keys (privacy preserved).
 """
 from __future__ import annotations
 
+import hashlib
 import math
 import os
 import re
@@ -54,7 +55,9 @@ class HashingEmbedder(Embedder):
             padded = f"#{tok}#"
             grams += [padded[i:i + 3] for i in range(len(padded) - 2)]
         for g in grams:
-            h = hash(g) % self.dim
+            # stable hash (built-in hash() is randomized per process, which
+            # would make dedupe non-deterministic across runs)
+            h = int(hashlib.md5(g.encode()).hexdigest(), 16) % self.dim
             vec[h] += 1.0
         norm = math.sqrt(sum(v * v for v in vec)) or 1.0
         return [v / norm for v in vec]

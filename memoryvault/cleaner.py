@@ -57,6 +57,11 @@ class Cleaner:
                         reverse=True):
             dup_of = None
             for keeper in seen:
+                # Never merge memories about DIFFERENT subjects — 3 customers
+                # reporting the same bug are 3 signals, not 1 duplicate.
+                if m.subject and keeper.subject and \
+                        m.subject.strip().lower() != keeper.subject.strip().lower():
+                    continue
                 same_slot = (conflict_key(m) and
                              conflict_key(m) == conflict_key(keeper) and
                              m.value.strip().lower() ==
