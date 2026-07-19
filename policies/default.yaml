@@ -12,6 +12,7 @@ quarantine:            # Feature 5.4 — the Approval Room
 acl:                   # Feature 6.1 — who-sees-what walls
   default: [general]
   admin: ["*"]
+  owner: ["*"]
   sales_agent: [sales, general]
   support_agent: [support, general]
   hr_agent: [hr, general]

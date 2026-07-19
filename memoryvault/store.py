@@ -28,12 +28,18 @@ from .crypto import Cipher, LocalKeyProvider, HAVE_CRYPTO
 
 class Vault:
     def __init__(self, path: str = "vault.db", policy: Optional[Policy] = None,
-                 encrypt: bool = False, policy_guard=None, redact_pii: bool = False):
+                 encrypt: bool = False, policy_guard=None, redact_pii: bool = False,
+                 zero_retention: bool = False, event_hook=None):
         self.path = path
         self.policy = policy or Policy()
         # enterprise governance hooks (optional; lazy defaults)
         self.policy_guard = policy_guard
         self.redact_pii = redact_pii
+        self.zero_retention = zero_retention   # ZDR: store metadata, not content
+        # real-time write-back: fired on every committed write (add/update/
+        # delete). Kept as a plain callback so the store stays decoupled from
+        # the RealtimeBus. Never lets a subscriber error break a write.
+        self.event_hook = event_hook
         provider = None
         if encrypt and HAVE_CRYPTO:
             provider = LocalKeyProvider(path + ".key")
@@ -55,7 +61,7 @@ class Vault:
             bias_risk INTEGER DEFAULT 0,
             tier TEXT DEFAULT 'team', flags TEXT DEFAULT '[]',
             legal_hold INTEGER DEFAULT 0, pii_types TEXT DEFAULT '[]',
-            redacted INTEGER DEFAULT 0
+            redacted INTEGER DEFAULT 0, classification TEXT DEFAULT ''
         );
         CREATE INDEX IF NOT EXISTS idx_mem_subject ON memories(subject, attribute);
         CREATE INDEX IF NOT EXISTS idx_mem_status ON memories(status);
@@ -163,6 +169,14 @@ class Vault:
             m.content, self.redact_pii)
         if m.pii_types and "pii" not in m.flags:
             m.flags = list(m.flags) + ["pii"]
+        # ---- data classification (sensitivity level) ----
+        from .classification import classify
+        if not m.classification:
+            m.classification = classify(m)
+        # ---- Zero-Data-Retention: keep governance metadata, drop content ----
+        if self.zero_retention:
+            m.content = "[zero-retention: content not persisted]"
+            m.redacted = True
         # ---- Policy Guard: flag company-rule violations (enterprise) ----
         if self.policy_guard is not None:
             violations = self.policy_guard.evaluate(m)
@@ -189,7 +203,20 @@ class Vault:
         self._put_row(m)
         self._append_event(actor, "add", m)
         self.db.commit()
+        # only surface memories that are actually live (not quarantined)
+        if m.status == MemoryStatus.ACTIVE.value:
+            self._fire("add", m)
         return m
+
+    def _fire(self, action: str, m: MemoryUnit):
+        """Notify the real-time bus of a committed write. A misbehaving
+        subscriber must never break the write, so failures are swallowed."""
+        if self.event_hook is None:
+            return
+        try:
+            self.event_hook(action, m.to_dict())
+        except Exception:
+            pass
 
     def _resolve_conflicts(self, incoming: MemoryUnit, actor: str):
         key = conflict_key(incoming)
@@ -237,6 +264,7 @@ class Vault:
         self._put_row(m)
         self._append_event(actor, "update", m)
         self.db.commit()
+        self._fire("update", m)
         return m
 
     # ---- 6.3 delete-with-receipt -----------------------------------------
@@ -258,6 +286,7 @@ class Vault:
             "cascade": cascade_results or {"vault": "ok"},
         })
         self.db.commit()
+        self._fire("delete", m)
         return receipt
 
     def erase_subject(self, subject: str, actor: str = "system",

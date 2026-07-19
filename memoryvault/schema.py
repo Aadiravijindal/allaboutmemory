@@ -117,6 +117,7 @@ class MemoryUnit:
     legal_hold: bool = False        # frozen for litigation — cannot be deleted
     pii_types: list = field(default_factory=list)  # detected PII categories
     redacted: bool = False          # whether content was PII-redacted
+    classification: str = ""        # public|internal|confidential|restricted
 
     def __post_init__(self):
         if self.expires_at is None:

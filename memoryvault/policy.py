@@ -32,6 +32,7 @@ DEFAULT_POLICY = {
         # agent/role -> namespaces it may read. "*" = everything.
         "default": ["general"],
         "admin": ["*"],
+        "owner": ["*"],
     },
     "ttl_overrides": {
         # tag or type -> ttl days (overrides decay class)

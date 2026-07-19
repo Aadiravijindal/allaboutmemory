@@ -79,3 +79,32 @@ how to see it working.
   detects any edit. Deletion receipts bind to the chain head (Feature 6.3).
 - **Least privilege:** every read passes ACL walls; every retrieval is logged
   (Features 6.1, 6.4).
+
+## NEXT-WAVE ENTERPRISE FEATURES (governance, value, interop)
+
+These extend the 8 core parts with what large buyers ask for in security
+reviews and procurement — the difference between a demo and a contract.
+
+| Feature | Where | See it |
+|---|---|---|
+| Memory ROI (the CFO number) | `roi.ROI.summary()` | `GET /api/roi` · Insights tab |
+| Quality evals (reliability scorecard) | `evals.Evals.score()` / `run_eval_set()` | `GET /api/evals` · Insights tab |
+| Knowledge graph | `graph.KnowledgeGraph.build()` / `neighborhood()` | `GET /api/graph` · Insights tab |
+| Data classification + no-training | `classification.classify()` / `training_allowed()` | set on every write; `restricted` never routes/trains |
+| Zero-data-retention (ZDR) | `store.Vault(zero_retention=True)` | env `MV_ZERO_RETENTION` — keep metadata, drop content |
+| Real-time write-back | `realtime.RealtimeBus` + `store.event_hook` | `POST /api/realtime/subscribe` — push on every write |
+| Consent ledger (GDPR/DPDP) | `consent.ConsentLedger` + `enforce_withdrawals()` | `POST /api/consent/{subject}` — withdraw purges memory |
+| A2A protocol (interop) | `a2a.A2AHandler` | `GET /.well-known/agent.json` · `POST /api/a2a/{skill}` |
+| Model governance (no silent swaps) | `models.ModelRouter` | `GET /api/models` — pinned set + deprecation notices |
+| Workplace integrations | `integrations.catalog()` | `GET /api/integrations` — Slack, Teams, Notion, Jira… |
+
+**Design notes**
+
+- ROI, evals, and the graph are *derived* from the vault's own event log and
+  counts — no separate data pipeline, so they're always live.
+- Classification runs inside the write path (`store.add`), so every memory
+  carries a sensitivity level; `restricted` memory never leaves the tenant.
+- Real-time write-back is decoupled: the store fires a plain `event_hook` on
+  every committed write, and a misbehaving subscriber can never break a write.
+- A2A access is keyed by the caller's **role**, so an agent sees exactly the
+  namespaces its role is entitled to — the same ACL walls as the REST API.

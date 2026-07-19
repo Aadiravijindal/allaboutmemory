@@ -53,6 +53,15 @@ class ControlPlane:
         self.policy_path = policy_path
         self._vaults: dict = {}
         self._keys: dict = self._load_keys()
+        # real-time write-back hook, applied to every tenant vault
+        self.event_hook = None
+
+    def set_event_hook(self, hook):
+        """Register a callback fired on every committed write, across all
+        tenant vaults (existing and future ones)."""
+        self.event_hook = hook
+        for v in self._vaults.values():
+            v.event_hook = hook
 
     # ---- key management --------------------------------------------------
     def _load_keys(self) -> dict:
@@ -109,7 +118,9 @@ class ControlPlane:
                 path, policy=policy,
                 encrypt=bool(os.environ.get("MV_ENCRYPT")),
                 policy_guard=PolicyGuard(),           # company-rule flagging on
-                redact_pii=bool(os.environ.get("MV_REDACT_PII")))
+                redact_pii=bool(os.environ.get("MV_REDACT_PII")),
+                zero_retention=bool(os.environ.get("MV_ZERO_RETENTION")),
+                event_hook=self.event_hook)
         return self._vaults[org]
 
     # ---- admin audit -----------------------------------------------------

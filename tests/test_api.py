@@ -80,3 +80,55 @@ def test_erase_produces_receipt_via_api():
     assert r["kind"] == "subject_erasure"
     receipts = client.get("/api/receipts", headers=H).json()["receipts"]
     assert len(receipts) >= 1
+
+
+# ---- next-wave endpoints (ROI, evals, graph, models, integrations, A2A) ----
+def test_nextwave_endpoints():
+    client.post("/api/rescue", headers=H, json={
+        "systems": ["salesforce_agentforce", "chatgpt_enterprise",
+                    "intercom_fin"], "clean": True})
+    client.get("/api/memories?q=acme", headers=H)  # create a retrieval for ROI
+
+    roi = client.get("/api/roi", headers=H).json()
+    assert roi["total_value_usd"] >= 0 and "breakdown" in roi
+
+    ev = client.get("/api/evals", headers=H).json()
+    assert 0 <= ev["overall"] <= 100 and ev["grade"] in "ABCDF"
+
+    g = client.get("/api/graph", headers=H).json()
+    assert g["stats"]["nodes"] >= 1
+
+    models = client.get("/api/models", headers=H).json()
+    assert any(d["model"] == "gpt-4-turbo" for d in models["deprecations"])
+
+    ints = client.get("/api/integrations", headers=H).json()["integrations"]
+    assert any(i["id"] == "slack" for i in ints)
+
+
+def test_a2a_endpoints_respect_role_acl():
+    client.post("/api/rescue", headers=H, json={
+        "systems": ["salesforce_agentforce", "chatgpt_enterprise"],
+        "clean": True})
+    card = client.get("/.well-known/agent.json").json()
+    assert card["name"] == "MemoryVault"
+    # owner role sees memory (regression: was 0 when keyed by key name)
+    out = client.post("/api/a2a/memory.query", headers=H, json={"query": ""}).json()
+    assert len(out["memories"]) >= 1
+
+
+def test_realtime_subscribe_cycle():
+    sub = client.post("/api/realtime/subscribe", headers=H,
+                      json={"url": "https://ex.com/hook", "events": ["add"]}).json()
+    assert "id" in sub
+    lst = client.get("/api/realtime/subscribers", headers=H).json()["subscribers"]
+    assert any(s["id"] == sub["id"] for s in lst)
+    rm = client.delete(f"/api/realtime/subscribers/{sub['id']}", headers=H).json()
+    assert rm["removed"] is True
+
+
+def test_consent_withdraw_purges():
+    client.post("/api/rescue", headers=H, json={
+        "systems": ["salesforce_agentforce"], "clean": False})
+    # withdrawing consent for a subject erases their memory
+    r = client.post("/api/consent/customer:globex?granted=false", headers=H)
+    assert r.status_code == 200

@@ -273,6 +273,49 @@ main{max-width:1320px;margin:0 auto;padding:6px 30px 40px}
     </div>
   </section>
 
+  <!-- ============ INSIGHTS (ROI · quality · graph · governance) ============ -->
+  <section class="view" id="v-insights">
+    <div class="secttl">Value created by your memory layer</div>
+    <div class="wrap">
+      <div class="stack">
+        <div class="card" style="background:radial-gradient(120% 160% at 85% -20%,#26202f 0%,var(--hero) 55%);border-color:var(--hero-line);color:#fff">
+          <div class="hd"><h3 style="color:#fff">💰 Memory ROI</h3><span style="color:#AEB4C6;font-size:12.5px">annualized · your assumptions</span></div>
+          <div id="roi-total" style="font-size:44px;font-weight:800;letter-spacing:-.03em">—</div>
+          <div style="color:#AEB4C6;font-size:13px;margin-top:2px">total value the vault created</div>
+          <div id="roi-break" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px"></div>
+          <div id="roi-drivers" style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;color:#AEB4C6;font-size:12.5px"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>🔗 Knowledge graph</h3><a class="more" href="#" onclick="return false">entities &amp; relationships</a></div>
+          <div id="graph-stats" class="muted">Loading…</div>
+          <div id="graph-top" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>🔌 Workplace integrations</h3><span class="muted">capture &amp; surface memory where teams work</span></div>
+          <div id="integrations"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="hd"><h3>🧪 Memory quality</h3><span class="muted">reliability scorecard</span></div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <div id="eval-grade" style="width:74px;height:74px;border-radius:50%;display:grid;place-items:center;font-size:30px;font-weight:800;background:var(--green-soft);color:var(--green);flex:none">—</div>
+            <div><div id="eval-overall" style="font-size:26px;font-weight:800">—</div><div class="muted">overall memory health</div></div>
+          </div>
+          <div id="eval-dims" style="margin-top:16px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>🤖 Model governance</h3><span class="muted">no silent swaps</span></div>
+          <div id="model-deps"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>⚡ Real-time write-back</h3><span class="muted">live push, not batch</span></div>
+          <div id="rt-subs" class="muted">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ SOURCES / CONNECT ============ -->
   <section class="view" id="v-sources">
     <div class="secttl">Connected AIs</div>
@@ -301,7 +344,7 @@ async function api(path,opts={}){opts.headers=Object.assign({"x-api-key":KEY,"co
 function toast(m){let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";document.body.appendChild(t);}
   t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
-const TABS=[["dashboard","Dashboard"],["memory","Memory"],["sources","Sources"],["policy","Policy"],["audit","Audit"],["security","Security"]];
+const TABS=[["dashboard","Dashboard"],["memory","Memory"],["insights","Insights"],["sources","Sources"],["policy","Policy"],["audit","Audit"],["security","Security"]];
 let tab="dashboard";
 const nav=document.getElementById("nav");
 function renderNav(){nav.innerHTML="";TABS.forEach(([id,l])=>{const b=document.createElement("button");
@@ -472,8 +515,66 @@ async function ksRelease(){await api("/api/killswitch/release",{method:"POST"});
 async function dlReport(){const r=await api("/api/compliance/report");const blob=new Blob([JSON.stringify(r,null,2)],{type:"application/json"});
   const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download="compliance-report.json";a.click();toast("Report downloaded");}
 
+// ---------- insights (ROI · quality · graph · governance) ----------
+const usd=n=>"$"+(n||0).toLocaleString();
+async function loadInsights(){
+  let roi={},ev={},g={},models={},ints={},rt={};
+  try{[roi,ev,g,models,ints,rt]=await Promise.all([
+    api("/api/roi"),api("/api/evals"),api("/api/graph"),api("/api/models"),
+    api("/api/integrations"),api("/api/realtime/subscribers")]);}catch(e){}
+  // ROI
+  $("#roi-total").textContent=usd(roi.total_value_usd);
+  const b=roi.breakdown||{},d=roi.drivers||{};
+  $("#roi-break").innerHTML=[
+    ["Reuse / re-learning avoided",b.reuse_value_usd],
+    ["Incidents prevented",b.incidents_prevented_usd],
+    ["Cleanup dividend",b.cleanup_value_usd]].map(([l,v])=>
+    `<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:12px">
+      <div style="font-size:19px;font-weight:800">${usd(v)}</div><div style="color:#AEB4C6;font-size:11.5px;margin-top:4px">${l}</div></div>`).join("");
+  $("#roi-drivers").innerHTML=[
+    ["🧠",d.memories_active,"active"],["♻️",d.memories_reused,"reused"],
+    ["⏱",d.hours_saved,"hrs saved"],["🛡",d.incidents_prevented,"incidents caught"],
+    ["🧹",d.duplicates_removed,"dupes removed"]].map(([i,n,l])=>
+    `<span>${i} <b style="color:#fff">${(n??0).toLocaleString()}</b> ${l}</span>`).join("");
+  // Evals
+  const grade=ev.grade||"—",oc=(ev.overall>=90?["var(--green-soft)","var(--green)"]:ev.overall>=65?["var(--amber-soft)","var(--amber)"]:["var(--red-soft)","var(--red)"]);
+  const eg=$("#eval-grade");eg.textContent=grade;eg.style.background=oc[0];eg.style.color=oc[1];
+  $("#eval-overall").textContent=(ev.overall??"—")+" / 100";
+  const dims=ev.dimensions||{};
+  $("#eval-dims").innerHTML=Object.entries(dims).map(([k,v])=>
+    `<div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
+      <span style="text-transform:capitalize;color:var(--ink2)">${k}</span><b class="num">${v}%</b></div>
+     <span class="trust" style="width:100%;height:7px;display:block"><i style="width:${v}%"></i></span></div>`).join("");
+  // Graph
+  const gs=g.stats||{};
+  $("#graph-stats").innerHTML=`<b style="color:var(--ink);font-size:19px">${gs.nodes||0}</b> entities · <b style="color:var(--ink);font-size:19px">${gs.edges||0}</b> relationships`;
+  const top=(g.nodes||[]).sort((a,b)=>b.memories-a.memories).slice(0,6);
+  $("#graph-top").innerHTML=top.map(n=>
+    `<div class="listrow"><span class="chip ${n.kind==='customer'?'brand':n.kind==='entity'?'purple':'grey'}">${esc(n.kind)}</span>
+     <div class="txt"><b style="color:var(--ink)">${esc(n.label)}</b></div>
+     <span class="muted">${n.memories} memories</span></div>`).join("")||'<p class="muted">No entities yet.</p>';
+  // Integrations
+  $("#integrations").innerHTML=(ints.integrations||[]).map(it=>
+    `<div class="listrow"><div class="av" style="width:34px;height:34px;background:${it.color}">${esc(it.name[0])}</div>
+     <div class="txt"><b style="color:var(--ink)">${esc(it.name)}</b><br><span class="muted" style="font-size:12px">${esc(it.captures)}</span></div>
+     <span class="chip ${it.live?'green':'grey'}">${it.live?'connected':'available'}</span></div>`).join("");
+  // Model governance
+  const deps=models.deprecations||[];
+  $("#model-deps").innerHTML=
+    `<div class="muted" style="margin-bottom:10px">${(models.allowed||[]).length} approved models · pinned so nothing changes under you.</div>`+
+    (deps.length?deps.map(m=>`<div class="listrow"><span class="chip amber">⚠ deprecated</span>
+      <div class="txt"><b style="color:var(--ink)">${esc(m.model)}</b><br><span class="muted" style="font-size:12px">retires ${esc(m.retires||'—')} — migrate before then</span></div></div>`).join("")
+     :'<p class="muted">All approved models are current. ✓</p>');
+  // Realtime
+  const subs=rt.subscribers||[];
+  $("#rt-subs").innerHTML=subs.length
+    ?subs.map(s=>`<div class="listrow"><span class="chip green">live</span><div class="txt"><b style="color:var(--ink)">${esc(s.url)}</b><br><span class="muted" style="font-size:12px">events: ${esc((s.events||[]).join(", "))}</span></div></div>`).join("")
+    :'<span class="muted">No subscribers yet. Register an endpoint (ERP, Slack, another agent) via <code>POST /api/realtime/subscribe</code> to get every memory event pushed the moment it changes.</span>';
+}
+
 // ---------- tab loader ----------
 function loadTab(id){if(id==="dashboard")loadDashboard();else if(id==="memory")renderSearch();
+  else if(id==="insights")loadInsights();
   else if(id==="policy")loadPolicy();else if(id==="audit")loadAudit("#tl2",100);
   else if(id==="sources")api("/api/connectors").then(renderSources).catch(()=>{});
   else if(id==="security")loadSecurity();}

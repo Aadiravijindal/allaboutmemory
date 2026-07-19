@@ -460,6 +460,107 @@ async def usage(key=Depends(require("read"))):
     return meter.summary(key.org)
 
 
+# ======================================================================
+#  NEXT-WAVE ENTERPRISE FEATURES (ROI, evals, graph, consent, A2A, ...)
+# ======================================================================
+from .roi import ROI  # noqa: E402
+from .evals import Evals  # noqa: E402
+from .graph import KnowledgeGraph  # noqa: E402
+from .models import ModelRouter  # noqa: E402
+from .a2a import A2AHandler  # noqa: E402
+from .integrations import catalog as integrations_catalog  # noqa: E402
+from .consent import ConsentLedger, enforce_withdrawals  # noqa: E402
+from .realtime import RealtimeBus  # noqa: E402
+
+consent_ledger = ConsentLedger(DATA_DIR)
+realtime_bus = RealtimeBus(DATA_DIR)
+model_router = ModelRouter()
+
+# fire subscribers on every committed write, across all tenant vaults
+cp.set_event_hook(realtime_bus.publish)
+
+
+@app.get("/api/roi")
+async def roi(key=Depends(require("read"))):
+    return ROI(cp.vault_for(key.org)).summary()
+
+
+@app.get("/api/evals")
+async def evals(key=Depends(require("read"))):
+    return Evals(cp.vault_for(key.org)).score()
+
+
+@app.get("/api/graph")
+async def graph(key=Depends(require("read"))):
+    return KnowledgeGraph(cp.vault_for(key.org)).build()
+
+
+@app.get("/api/graph/neighborhood")
+async def graph_neighborhood(subject: str, key=Depends(require("read"))):
+    return KnowledgeGraph(cp.vault_for(key.org)).neighborhood(subject)
+
+
+@app.get("/api/integrations")
+async def integrations(key=Depends(require("read"))):
+    return {"integrations": integrations_catalog()}
+
+
+@app.get("/api/models")
+async def models(key=Depends(require("read"))):
+    return model_router.status()
+
+
+# ---- consent ----
+@app.get("/api/consent/{subject}")
+async def consent_status(subject: str, key=Depends(require("read"))):
+    return consent_ledger.status(subject)
+
+
+@app.post("/api/consent/{subject}")
+async def consent_set(subject: str, granted: bool = True,
+                      key=Depends(require("admin"))):
+    rec = consent_ledger.set(subject, granted, actor=f"api:{key.role}")
+    if not granted:  # withdrawing consent purges their memory
+        enforce_withdrawals(cp.vault_for(key.org), consent_ledger)
+    return rec
+
+
+# ---- realtime write-back ----
+class SubIn(BaseModel):
+    url: str
+    events: list = ["add", "delete", "update"]
+    secret: str = ""
+
+
+@app.get("/api/realtime/subscribers")
+async def rt_list(key=Depends(require("read"))):
+    return {"subscribers": realtime_bus.list()}
+
+
+@app.post("/api/realtime/subscribe")
+async def rt_sub(body: SubIn, key=Depends(require("admin"))):
+    return realtime_bus.subscribe(body.url, body.events, body.secret)
+
+
+@app.delete("/api/realtime/subscribers/{sub_id}")
+async def rt_unsub(sub_id: int, key=Depends(require("admin"))):
+    return {"removed": realtime_bus.unsubscribe(sub_id)}
+
+
+# ---- A2A (agent-to-agent) ----
+@app.get("/.well-known/agent.json")
+async def agent_card():
+    return A2AHandler(cp.vault_for(DEMO_ORG)).agent_card()
+
+
+@app.post("/api/a2a/{skill}")
+async def a2a_invoke(skill: str, params: dict, key=Depends(require("read"))):
+    # ACL/namespace access is keyed by role, not the human-readable key name,
+    # so the caller sees exactly the memory their role is entitled to.
+    return A2AHandler(cp.vault_for(key.org)).handle(skill, params,
+                                                    agent=key.role)
+
+
 # ---- setup / status (what's activated by your keys) ------------------
 @app.get("/api/setup")
 async def setup_status(key=Depends(require("admin"))):
