@@ -78,6 +78,35 @@ def build_registry(org: str = None):
     return reg
 
 
+# --------------------------------------------------- demo auto-seed on boot
+DEMO_SYSTEMS = ["salesforce_agentforce", "chatgpt_enterprise",
+                "intercom_fin", "email_ingest"]
+
+
+def seed_demo():
+    """Populate the demo org's vault the first time it boots so the console is
+    alive out of the box — dashboard, graph, ROI, evals and audit all show
+    real data instead of an empty state. Idempotent: skipped once the vault
+    has memory. Set MV_SEED_DEMO=0 to disable."""
+    import sys
+    if os.environ.get("MV_SEED_DEMO", "1") in ("0", "false", "no"):
+        return
+    if "pytest" in sys.modules:   # tests seed their own fixtures explicitly
+        return
+    v = cp.vault_for(DEMO_ORG)
+    if v.counts().get("active", 0) > 0:
+        return  # already seeded
+    try:
+        RescueTool(v, build_registry(DEMO_ORG), org=DEMO_ORG).run(
+            DEMO_SYSTEMS, clean=True)
+        # a few reads so ROI's reuse value + the flight recorder aren't empty
+        for q in ("acme", "refund", "invoice", "export bug", "plan"):
+            v.search(query=q, agent="admin", limit=10)
+        log.info("Seeded demo vault: %s", v.counts())
+    except Exception as e:  # never let seeding block startup
+        log.warning("demo seed skipped: %s", e)
+
+
 # ------------------------------------------------------------------ auth
 async def auth(x_api_key: Optional[str] = Header(None),
                authorization: Optional[str] = Header(None)):
@@ -479,6 +508,9 @@ model_router = ModelRouter()
 # fire subscribers on every committed write, across all tenant vaults
 cp.set_event_hook(realtime_bus.publish)
 
+# populate the demo vault on first boot so the console opens full of life
+seed_demo()
+
 
 @app.get("/api/roi")
 async def roi(key=Depends(require("read"))):
@@ -699,6 +731,19 @@ async def spa():
 @app.get("/classic", response_class=HTMLResponse)
 async def classic():
     return _serve("index.html")
+
+
+_FAVICON = (
+    b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
+    b"<rect width='32' height='32' rx='8' fill='#4B57E8'/>"
+    b"<text x='16' y='22' font-size='18' font-family='Arial' font-weight='bold'"
+    b" fill='white' text-anchor='middle'>M</text></svg>")
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    from fastapi.responses import Response
+    return Response(content=_FAVICON, media_type="image/svg+xml")
 
 
 def main():  # pragma: no cover
