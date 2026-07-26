@@ -15,9 +15,9 @@
   --red:#DC4C50; --red-soft:#FBEAEA;
   --purple:#8A56D6; --purple-soft:#F1EAFB;
   --hero:#14161D; --hero2:#1D202B; --hero-line:#2A2E3B;
-  --radius:20px; --radius-sm:14px;
+  --radius:16px; --radius-sm:12px;
   --shadow:0 1px 2px rgba(20,24,36,.04),0 6px 20px rgba(20,24,36,.05);
-  --shadow-lg:0 2px 6px rgba(20,24,36,.05),0 16px 40px rgba(20,24,36,.08);
+  --shadow-lg:0 2px 6px rgba(20,24,36,.05),0 16px 40px rgba(20,24,36,.10);
 }
 @media (prefers-color-scheme: dark){:root{
   --bg:#0B0D12; --card:#13161E; --ink:#EDEFF5; --ink2:#C2C8D6; --dim:#8A93A6; --faint:#5E6678;
@@ -36,8 +36,6 @@
   --amber:#E3B24E; --amber-soft:#2B2413; --red:#F0686C; --red-soft:#2E1719;
   --purple:#B98BEC; --purple-soft:#241A34;
   --hero:#05070C; --hero2:#0E1119; --hero-line:#1E2331;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
-  --shadow-lg:0 2px 8px rgba(0,0,0,.4),0 20px 50px rgba(0,0,0,.5);
 }
 :root[data-theme="light"]{
   --bg:#F3F4F7; --card:#FFFFFF; --ink:#141824; --ink2:#3A4152; --dim:#727A8C; --faint:#9AA1B2;
@@ -45,81 +43,74 @@
   --green:#1F9D6B; --green-soft:#E6F6EF; --amber:#C2860B; --amber-soft:#FBF2DF;
   --red:#DC4C50; --red-soft:#FBEAEA; --purple:#8A56D6; --purple-soft:#F1EAFB;
   --hero:#14161D; --hero2:#1D202B; --hero-line:#2A2E3B;
-  --shadow:0 1px 2px rgba(20,24,36,.04),0 6px 20px rgba(20,24,36,.05);
-  --shadow-lg:0 2px 6px rgba(20,24,36,.05),0 16px 40px rgba(20,24,36,.08);
 }
 *{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);display:flex;
   font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased}
 .num{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-button{font-family:inherit;cursor:pointer;border:0;background:none}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select{font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none}
+input:focus,select:focus{border-color:var(--brand)}
 a{color:inherit;text-decoration:none}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+code{background:var(--chipbg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px}
 
-/* top nav */
-.top{display:flex;align-items:center;gap:26px;padding:16px 30px;max-width:1320px;margin:0 auto}
-.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;letter-spacing:-.02em}
+/* ============ sidebar ============ */
+.side{width:232px;flex:none;background:var(--card);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:18px 12px;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;letter-spacing:-.02em;padding:4px 10px 16px}
 .logo .mk{width:28px;height:28px;border-radius:8px;background:linear-gradient(140deg,var(--brand),#8A56D6);
   display:grid;place-items:center;color:#fff;font-weight:800}
-.mainnav{display:flex;gap:4px}
-.mainnav button{color:var(--dim);font-weight:600;font-size:14px;padding:8px 14px;border-radius:9px}
-.mainnav button:hover{color:var(--ink);background:var(--line2)}
-.mainnav button.active{color:var(--ink)}
-.mainnav button.active::after{content:"";display:block;height:2px;background:var(--brand);border-radius:2px;margin-top:6px}
-.grow{flex:1}
-.ib{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--line);
-  display:grid;place-items:center;color:var(--dim);position:relative}
-.ib:hover{color:var(--ink)}
-.ib .bdg{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;
-  background:var(--red);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;border:2px solid var(--bg)}
-.me{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:12px}
-.me:hover{background:var(--line2)}
-.av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
-.me .who{line-height:1.2}
-.me .who b{font-weight:700;font-size:13.5px}
+.snav{display:flex;flex-direction:column;gap:2px}
+.snav button{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;
+  color:var(--dim);font-weight:600;font-size:13.5px;text-align:left;width:100%}
+.snav button:hover{background:var(--line2);color:var(--ink)}
+.snav button.active{background:var(--brand-soft);color:var(--brand)}
+.snav .ico{width:20px;text-align:center;flex:none}
+.snav .bdg{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--red);
+  color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center}
+.snav .bdg.zero{background:var(--chipbg);color:var(--faint)}
+.sfoot{margin-top:auto;padding:10px;border-top:1px solid var(--line2)}
+.skbd{display:flex;align-items:center;gap:8px;color:var(--faint);font-size:12px;padding:8px 10px;
+  border:1px dashed var(--line);border-radius:10px;margin-bottom:12px;cursor:pointer}
+.skbd:hover{color:var(--ink);border-color:var(--brand)}
+.kbd{background:var(--chipbg);border:1px solid var(--line);border-radius:5px;padding:0 5px;font-size:11px;font-weight:700}
+.me{display:flex;align-items:center;gap:10px}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;flex:none}
+.me .who{line-height:1.25;min-width:0}
+.me .who b{font-weight:700;font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .me .who span{color:var(--dim);font-size:11.5px}
 
-main{max-width:1320px;margin:0 auto;padding:6px 30px 40px}
+/* ============ main ============ */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1px solid var(--line);
+  background:var(--card);position:sticky;top:0;z-index:5}
+.bar h2{margin:0;font-size:17px;font-weight:750;letter-spacing:-.01em}
+.bar .sub{color:var(--dim);font-size:12.5px;margin-top:1px}
+.gsearch{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--bg);
+  border:1px solid var(--line);border-radius:10px;padding:0 10px;width:280px}
+.gsearch input{border:0;background:none;flex:1;padding:9px 2px}
+.tbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;color:var(--dim)}
+.tbtn:hover{color:var(--ink);border-color:var(--brand)}
+.content{padding:22px 26px 48px;max-width:1220px;width:100%;margin:0 auto}
+.view{display:none}.view.active{display:block}
 
-/* hero */
-.hero{background:radial-gradient(120% 160% at 85% -20%,#26202f 0%,var(--hero) 55%);
-  border:1px solid var(--hero-line);border-radius:var(--radius);padding:30px 32px;
-  display:flex;gap:28px;align-items:center;color:#fff;overflow:hidden;position:relative}
-.hero .lead{flex:1;min-width:240px}
-.hero .pin{display:inline-block;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);
-  border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;margin-bottom:16px}
-.hero h1{margin:0;font-size:33px;line-height:1.12;font-weight:800;letter-spacing:-.03em;text-wrap:balance;max-width:12ch}
-.hstats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;flex:1.5}
-.hstat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:16px}
-.hstat .row{display:flex;justify-content:space-between;align-items:flex-start}
-.hstat .n{font-size:30px;font-weight:800;letter-spacing:-.03em}
-.hstat .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px}
-.hstat .lab{color:#AEB4C6;font-size:12.5px;margin-top:6px;line-height:1.3}
-.hstat .delta{font-size:11.5px;margin-top:9px;font-weight:600}
-.hstat .delta.up{color:#4ADE96} .hstat .delta.dn{color:#F0686C}
-.hstat .delta .g{color:#7E869B;font-weight:500}
-
-/* content grid */
-.wrap{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
-.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+/* ============ shared bits ============ */
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-  padding:20px;box-shadow:var(--shadow)}
-.card .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.card h3{margin:0;font-size:16px;font-weight:750;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
-.card h3 .c{background:var(--brand-soft);color:var(--brand);font-size:12px;font-weight:700;
-  min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center}
-.card .more{color:var(--brand);font-weight:650;font-size:13px;display:flex;align-items:center;gap:4px}
+  padding:18px 20px;box-shadow:var(--shadow)}
+.card .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
+.card h3{margin:0;font-size:15px;font-weight:750;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
 .muted{color:var(--dim);font-size:13px}
-
-/* memory cards row */
-.memrow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.memcard{border:1px solid var(--line);border-radius:16px;padding:15px;background:var(--card);display:flex;flex-direction:column;gap:11px}
-.memcard .top{display:flex;align-items:center;gap:10px}
-.memcard .nm{font-weight:700;font-size:13.5px}
-.memcard .role{color:var(--faint);font-size:11.5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid23{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.secttl{font-size:12px;font-weight:700;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin:22px 2px 10px}
+.secttl:first-child{margin-top:0}
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:8px;white-space:nowrap}
 .chip.green{background:var(--green-soft);color:var(--green)}
 .chip.amber{background:var(--amber-soft);color:var(--amber)}
@@ -127,462 +118,791 @@ main{max-width:1320px;margin:0 auto;padding:6px 30px 40px}
 .chip.purple{background:var(--purple-soft);color:var(--purple)}
 .chip.grey{background:var(--chipbg);color:var(--dim)}
 .chip.brand{background:var(--brand-soft);color:var(--brand)}
-.memcard .txt{font-size:13.5px;color:var(--ink2);line-height:1.45;min-height:38px}
-.memcard .src{display:flex;align-items:center;gap:6px;color:var(--faint);font-size:11.5px}
-.memcard .acts{display:flex;gap:8px;margin-top:2px}
-.abtn{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:12.5px;font-weight:650;
-  color:var(--ink2);display:flex;align-items:center;justify-content:center;gap:6px}
-.abtn:hover{border-color:var(--brand);color:var(--brand)}
-.abtn.solid{background:var(--brand);color:#fff;border-color:var(--brand)}
-
-/* audit timeline */
-.tl{position:relative}
-.tl .row{display:flex;gap:12px;padding:11px 0}
-.tl .time{width:52px;flex:none;color:var(--faint);font-size:11.5px;text-align:right;padding-top:2px;font-variant-numeric:tabular-nums}
-.tl .track{position:relative;width:14px;flex:none;display:flex;justify-content:center}
-.tl .track::before{content:"";position:absolute;top:0;bottom:-11px;width:2px;background:var(--line)}
-.tl .row:last-child .track::before{display:none}
-.tl .dot{width:11px;height:11px;border-radius:50%;background:var(--card);border:2px solid var(--brand);z-index:1;margin-top:3px}
-.tl .dot.red{border-color:var(--red)} .tl .dot.green{border-color:var(--green)} .tl .dot.amber{border-color:var(--amber)} .tl .dot.grey{border-color:var(--faint)}
-.tl .body{flex:1;min-width:0}
-.tl .act{font-size:13px;font-weight:600;line-height:1.35}
-.tl .who{color:var(--dim);font-size:11.5px;margin-top:2px;display:flex;align-items:center;gap:6px}
-
-/* charts */
-.chartwrap{height:170px;position:relative} .chartwrap canvas{width:100%;height:170px;display:block}
-.legend{display:flex;gap:16px;margin-top:12px;font-size:12.5px;color:var(--dim);flex-wrap:wrap}
-.legend span{display:flex;align-items:center;gap:6px} .legend i{width:10px;height:10px;border-radius:3px}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.donutrow{display:flex;align-items:center;gap:20px}
-.dlist{flex:1;display:flex;flex-direction:column;gap:9px}
-.dlist .r{display:flex;align-items:center;gap:9px;font-size:13px}
-.dlist .r .sw{width:10px;height:10px;border-radius:3px;flex:none}
-.dlist .r .nm{flex:1;color:var(--ink2)} .dlist .r .n{font-weight:700;font-variant-numeric:tabular-nums}
-
-.view{display:none} .view.active{display:block}
-.secttl{font-size:12.5px;font-weight:700;color:var(--dim);letter-spacing:.05em;text-transform:uppercase;margin:24px 4px 12px}
-
-/* policy/search generic list */
-.listrow{display:flex;align-items:center;gap:13px;padding:13px 0;border-top:1px solid var(--line2)}
+.btn{border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:650;
+  color:var(--ink2);display:inline-flex;align-items:center;gap:7px;background:var(--card)}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.solid{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn.solid:hover{filter:brightness(1.06);color:#fff}
+.btn.danger{color:var(--red)}
+.btn.danger:hover{border-color:var(--red)}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
+.listrow{display:flex;align-items:center;gap:13px;padding:12px 0;border-top:1px solid var(--line2)}
 .listrow:first-child{border-top:0}
 .listrow .txt{flex:1;min-width:0;font-size:13.5px;color:var(--ink2)}
-.trust{width:56px;height:6px;border-radius:6px;background:var(--line);overflow:hidden;flex:none}
+.listrow .txt b{color:var(--ink)}
+.trust{width:52px;height:6px;border-radius:6px;background:var(--line);overflow:hidden;flex:none}
 .trust i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--green))}
+.empty{padding:26px 10px;text-align:center;color:var(--dim)}
+.empty .big{font-size:30px;margin-bottom:8px}
+.formrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.formrow input,.formrow select{flex:1;min-width:140px}
+label.f{font-size:12px;font-weight:700;color:var(--dim);display:block;margin:10px 0 5px}
 
-@media(max-width:1040px){.wrap{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start}
-  .hstats{width:100%} .memrow{grid-template-columns:1fr}.two{grid-template-columns:1fr}
-  .mainnav{display:none}}
+/* home answer cards */
+.answers{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.answer{border-radius:var(--radius);padding:20px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);cursor:pointer;position:relative}
+.answer:hover{box-shadow:var(--shadow-lg)}
+.answer .q{font-size:12px;font-weight:700;color:var(--dim);letter-spacing:.05em;text-transform:uppercase}
+.answer .a{font-size:34px;font-weight:800;letter-spacing:-.03em;margin:8px 0 2px;display:flex;align-items:baseline;gap:10px}
+.answer .d{color:var(--dim);font-size:12.5px;line-height:1.45}
+.answer .go{position:absolute;top:16px;right:16px;color:var(--faint);font-size:16px}
+.answer.dark{background:radial-gradient(120% 160% at 85% -20%,#26202f 0%,var(--hero) 55%);border-color:var(--hero-line);color:#fff}
+.answer.dark .q{color:#8E96AB}.answer.dark .d{color:#AEB4C6}
+
+/* timeline */
+.tl .row{display:flex;gap:12px;padding:10px 0}
+.tl .time{width:46px;flex:none;color:var(--faint);font-size:11.5px;text-align:right;padding-top:2px;font-variant-numeric:tabular-nums}
+.tl .track{position:relative;width:14px;flex:none;display:flex;justify-content:center}
+.tl .track::before{content:"";position:absolute;top:0;bottom:-10px;width:2px;background:var(--line)}
+.tl .row:last-child .track::before{display:none}
+.tl .dot{width:11px;height:11px;border-radius:50%;background:var(--card);border:2px solid var(--brand);z-index:1;margin-top:3px}
+.tl .dot.red{border-color:var(--red)}.tl .dot.green{border-color:var(--green)}.tl .dot.amber{border-color:var(--amber)}.tl .dot.grey{border-color:var(--faint)}
+.tl .body{flex:1;min-width:0}
+.tl .act{font-size:13px;font-weight:600;line-height:1.35}
+.tl .who{color:var(--dim);font-size:11.5px;margin-top:1px}
+
+/* charts */
+.chartwrap{height:150px;position:relative}.chartwrap canvas{width:100%;height:150px;display:block}
+.donutrow{display:flex;align-items:center;gap:20px}
+.dlist{flex:1;display:flex;flex-direction:column;gap:8px}
+.dlist .r{display:flex;align-items:center;gap:9px;font-size:13px}
+.dlist .r .sw{width:10px;height:10px;border-radius:3px;flex:none}
+.dlist .r .nm{flex:1;color:var(--ink2)}.dlist .r .n{font-weight:700;font-variant-numeric:tabular-nums}
+
+/* review cards */
+.rev{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start;background:var(--card)}
+.rev+.rev{margin-top:10px}
+.rev .why{flex:1;min-width:0}
+.rev .content{font-size:13.5px;color:var(--ink);font-weight:600;line-height:1.45}
+.rev .meta{color:var(--dim);font-size:12px;margin-top:4px}
+.rev .acts{display:flex;gap:8px;flex:none}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,12,18,.45);opacity:0;pointer-events:none;transition:opacity .18s;z-index:40}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:-440px;width:420px;max-width:92vw;height:100vh;background:var(--card);
+  border-left:1px solid var(--line);z-index:41;transition:right .2s;display:flex;flex-direction:column}
+.drawer.open{right:0}
+.drawer .dh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.drawer .dh h3{margin:0;font-size:15px;flex:1}
+.drawer .db{padding:16px 20px;overflow-y:auto;flex:1}
+
+/* palette */
+.pal{position:fixed;inset:0;z-index:50;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;background:rgba(10,12,18,.45)}
+.pal.open{display:flex}
+.palbox{width:520px;max-width:92vw;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden}
+.palbox input{width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:14px 16px;font-size:14px;background:var(--card)}
+.palist{max-height:320px;overflow-y:auto;padding:6px}
+.palist .pi{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:13.5px;cursor:pointer;color:var(--ink2)}
+.palist .pi:hover,.palist .pi.sel{background:var(--brand-soft);color:var(--brand)}
+.palist .pi .k{margin-left:auto;color:var(--faint);font-size:11px}
+
+/* toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,80px);background:var(--hero);color:#fff;
+  padding:11px 20px;border-radius:12px;font-size:13.5px;font-weight:600;transition:transform .25s;z-index:60;box-shadow:var(--shadow-lg)}
+.toast.show{transform:translate(-50%,0)}
+
+@media(max-width:1000px){.answers,.grid3{grid-template-columns:1fr}.grid2,.grid23{grid-template-columns:1fr}
+  .side{width:64px}.side .logo span.lt,.side .snav .lb,.side .sfoot .who,.side .skbd span{display:none}
+  .snav .bdg{position:absolute;transform:translate(10px,-10px)}}
 </style>
 </head>
 <body>
-<div class="top">
-  <div class="logo"><span class="mk">M</span>MemoryVault</div>
-  <nav class="mainnav" id="nav"></nav>
-  <div class="grow"></div>
-  <button class="ib" title="Alerts">🔔<span class="bdg">7</span></button>
-  <button class="ib" id="themeBtn" title="Theme">◐</button>
-  <div class="me"><div class="av" style="background:linear-gradient(135deg,#4B57E8,#8A56D6)">AJ</div>
-    <div class="who"><b>Aadi Jindal</b><br><span>Admin · Acme Corp</span></div></div>
-</div>
 
-<main>
-  <!-- ============ DASHBOARD ============ -->
-  <section class="view active" id="v-dashboard">
-    <div class="hero">
-      <div class="lead">
-        <span class="pin">Welcome back 👋</span>
-        <h1>Here's what's happening across your AI memory today.</h1>
-        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
-          <button class="abtn solid" style="flex:none;padding:9px 15px" onclick="runRescue()">⤵ Run Rescue</button>
-          <button class="abtn" style="flex:none;padding:9px 15px;color:#fff;border-color:rgba(255,255,255,.2)" onclick="doSync()">🔄 Sync all</button>
-          <button class="abtn" style="flex:none;padding:9px 15px;color:#fff;border-color:rgba(255,255,255,.2)" onclick="doClean()">🧹 Clean</button>
-        </div>
+<aside class="side">
+  <div class="logo"><span class="mk">M</span><span class="lt">MemoryVault</span></div>
+  <nav class="snav" id="nav"></nav>
+  <div class="sfoot">
+    <div class="skbd" onclick="openPal()"><span>Search &amp; commands</span><span style="margin-left:auto" class="kbd">⌘K</span></div>
+    <div class="me"><div class="av" id="me-av" style="background:linear-gradient(135deg,#4B57E8,#8A56D6)">–</div>
+      <div class="who"><b id="me-name">…</b><span id="me-role"></span></div></div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="bar">
+    <div><h2 id="pg-title">Home</h2><div class="sub" id="pg-sub"></div></div>
+    <div class="gsearch">🔍<input id="gq" placeholder="Search all memory…  ( / )"></div>
+    <button class="tbtn" id="themeBtn" title="Theme">◐</button>
+  </header>
+
+  <div class="content">
+
+  <!-- ============ HOME ============ -->
+  <section class="view active" id="v-home">
+    <div class="answers">
+      <div class="answer" onclick="go('security')">
+        <div class="go">→</div>
+        <div class="q">Is my memory safe?</div>
+        <div class="a" id="h-safe">—</div>
+        <div class="d" id="h-safe-d">checking the vault…</div>
       </div>
-      <div class="hstats">
-        <div class="hstat"><div class="row"><div class="n num" id="k-total">—</div>
-          <div class="ic" style="background:rgba(75,87,232,.22)">🧠</div></div>
-          <div class="lab">Total memories</div><div class="delta up" id="k-total-d">active in your vault</div></div>
-        <div class="hstat"><div class="row"><div class="n num" id="k-flag">—</div>
-          <div class="ic" style="background:rgba(220,76,80,.22)">🚩</div></div>
-          <div class="lab">Flagged</div><div class="delta dn"><span class="g">policy + poison</span></div></div>
-        <div class="hstat"><div class="row"><div class="n num" id="k-src">—</div>
-          <div class="ic" style="background:rgba(31,157,107,.22)">🔌</div></div>
-          <div class="lab">Connected AIs</div><div class="delta up" id="k-src-d">sources</div></div>
-        <div class="hstat"><div class="row"><div class="n num" id="k-health">—</div>
-          <div class="ic" style="background:rgba(138,86,214,.22)">📈</div></div>
-          <div class="lab">Memory health</div><div class="delta up" id="k-health-d">fresh &amp; clean</div></div>
+      <div class="answer" onclick="go('review')">
+        <div class="go">→</div>
+        <div class="q">What needs my decision?</div>
+        <div class="a" id="h-review">—</div>
+        <div class="d" id="h-review-d"></div>
+      </div>
+      <div class="answer dark" onclick="go('insights')">
+        <div class="go" style="color:#7E869B">→</div>
+        <div class="q">What is it worth?</div>
+        <div class="a" id="h-roi">—</div>
+        <div class="d" id="h-roi-d"></div>
       </div>
     </div>
 
-    <div class="wrap">
+    <div class="grid23" style="margin-top:16px">
       <div class="stack">
         <div class="card">
-          <div class="hd"><h3>Recent memory <span class="c">3</span></h3><a class="more" href="#" data-go="memory">View all →</a></div>
-          <div class="memrow" id="memrow"></div>
+          <div class="hd"><h3>Latest memory</h3><a class="muted" href="#" data-go="memory">Open Memory →</a></div>
+          <div id="home-mem"></div>
         </div>
-
-        <div class="two">
+        <div class="grid2">
           <div class="card">
-            <div class="hd"><h3>Memory volume</h3><span class="muted">240 this month</span></div>
+            <div class="hd"><h3>Where knowledge lives</h3><span class="muted" id="ns-total"></span></div>
             <div class="chartwrap"><canvas id="bars"></canvas></div>
-            <div class="legend"><span><i style="background:var(--brand)"></i>Active</span>
-              <span><i style="background:var(--line)"></i>Forgotten (kept in history)</span></div>
+            <div id="ns-legend" class="dlist" style="margin-top:10px"></div>
           </div>
           <div class="card">
-            <div class="hd"><h3>Memory by source</h3><span class="muted">this month</span></div>
-            <div class="donutrow"><canvas id="donut" width="130" height="130" style="width:130px;height:130px"></canvas>
+            <div class="hd"><h3>Memory by source</h3><span class="muted">live</span></div>
+            <div class="donutrow"><canvas id="donut" width="120" height="120" style="width:120px;height:120px"></canvas>
               <div class="dlist" id="dlist"></div></div>
           </div>
         </div>
       </div>
+      <div class="card">
+        <div class="hd"><h3>Live activity</h3><a class="muted" href="#" data-go="audit">Full audit →</a></div>
+        <div class="tl" id="tl"></div>
+      </div>
+    </div>
+  </section>
 
+  <!-- ============ NEEDS REVIEW ============ -->
+  <section class="view" id="v-review">
+    <div class="secttl">Held at the door — approve or reject before it enters the brain</div>
+    <div id="rev-quar"></div>
+    <div class="secttl">Flagged by your policy rules</div>
+    <div id="rev-flag"></div>
+  </section>
+
+  <!-- ============ MEMORY ============ -->
+  <section class="view" id="v-memory">
+    <div class="card">
+      <div class="hd"><h3>Every AI's memory, searchable</h3>
+        <span class="muted">click a row to trace: who wrote it, which AI read it</span></div>
+      <div class="formrow">
+        <input id="q" placeholder="Search content, customers, values…" style="flex:2">
+        <select id="q-status"><option value="active">active</option><option value="quarantined">held</option>
+          <option value="superseded">superseded</option><option value="all">all</option></select>
+      </div>
+      <div id="results" style="margin-top:6px"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="hd"><h3>Right to be forgotten</h3><span class="muted">GDPR erase · one receipt, cryptographically signed</span></div>
+      <div class="formrow">
+        <input id="erase-subj" placeholder="subject, e.g. customer:acme">
+        <button class="btn danger" onclick="eraseSubject()">Erase everything about this subject</button>
+        <button class="btn" onclick="legalHold()">Apply legal hold</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONNECTIONS ============ -->
+  <section class="view" id="v-connections">
+    <div class="grid23">
       <div class="stack">
         <div class="card">
-          <div class="hd"><h3>Audit log</h3><a class="more" href="#" data-go="audit">Full log →</a></div>
-          <div class="tl" id="tl"></div>
+          <div class="hd"><h3>Connected sources</h3>
+            <span style="display:flex;gap:8px">
+              <button class="btn sm" onclick="doSync()">🔄 Sync all</button>
+              <button class="btn sm solid" onclick="runRescue()">⤵ Rescue memory</button></span></div>
+          <div id="sources"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>Connect any AI</h3><span class="muted">REST API · no code</span></div>
+          <div class="formrow">
+            <input id="cx-name" placeholder="name, e.g. pdfmaker_ai">
+            <input id="cx-url" placeholder="base URL, e.g. https://api.tool.com/v1/logs" style="flex:2">
+            <button class="btn solid" onclick="addConnector()">Connect</button>
+          </div>
+          <p class="muted" style="margin:10px 0 0">We pull what it learned, normalize it into governed memory, and it shows up above as <b>custom</b>.</p>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="hd"><h3>Upload an export</h3><span class="muted">JSON / CSV</span></div>
+          <input type="file" id="up-file" style="width:100%">
+          <button class="btn solid" style="margin-top:10px" onclick="uploadFile()">Upload &amp; import</button>
+          <p class="muted" style="margin:10px 0 0">Drop any tool's export — ChatGPT, Notion, a CRM dump. Untrusted uploads wait in <a href="#" data-go="review" style="color:var(--brand)">Needs review</a>.</p>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>Webhook inbox</h3><span class="muted">push from 6,000+ apps</span></div>
+          <p class="muted" style="margin:0 0 8px">Point Zapier / Make / any tool at:</p>
+          <code id="wh-url" style="display:block;padding:8px 10px;word-break:break-all">…</code>
+          <p class="muted" style="margin:10px 0 4px">Header <code>x-ingest-token</code>:</p>
+          <code id="wh-token" style="display:block;padding:8px 10px;word-break:break-all">…</code>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ============ MEMORY (search + attribution) ============ -->
-  <section class="view" id="v-memory">
-    <div class="card">
-      <div class="hd"><h3>Search every AI's memory</h3><span class="muted">who wrote it · from which AI · when</span></div>
-      <input id="q" value="Acme" oninput="renderSearch()" placeholder="Search…"
-        style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--ink);font-size:14px">
-      <div id="results" style="margin-top:8px"></div>
-    </div>
-  </section>
-
-  <!-- ============ POLICY ============ -->
-  <section class="view" id="v-policy">
-    <div class="secttl">Policy Guard — flag memory that breaks your rules</div>
-    <div class="card">
-      <div class="hd"><h3>Active rules <span class="c">4</span></h3><button class="abtn solid" style="flex:none;padding:8px 14px">+ Add rule</button></div>
-      <div id="rules"></div>
-    </div>
-    <div class="secttl">Flagged by policy</div>
-    <div class="card"><div id="flagged"></div></div>
-  </section>
-
-  <!-- ============ AUDIT ============ -->
-  <section class="view" id="v-audit">
-    <div class="card">
-      <div class="hd"><h3>Full audit log</h3><span class="muted">every write, read, flag &amp; deletion — tamper-evident</span></div>
-      <div class="tl" id="tl2"></div>
-    </div>
-  </section>
-
-  <!-- ============ INSIGHTS (ROI · quality · graph · governance) ============ -->
+  <!-- ============ INSIGHTS ============ -->
   <section class="view" id="v-insights">
-    <div class="secttl">Value created by your memory layer</div>
-    <div class="wrap">
+    <div class="grid23">
       <div class="stack">
         <div class="card" style="background:radial-gradient(120% 160% at 85% -20%,#26202f 0%,var(--hero) 55%);border-color:var(--hero-line);color:#fff">
           <div class="hd"><h3 style="color:#fff">💰 Memory ROI</h3><span style="color:#AEB4C6;font-size:12.5px">annualized · your assumptions</span></div>
-          <div id="roi-total" style="font-size:44px;font-weight:800;letter-spacing:-.03em">—</div>
+          <div id="roi-total" style="font-size:42px;font-weight:800;letter-spacing:-.03em">—</div>
           <div style="color:#AEB4C6;font-size:13px;margin-top:2px">total value the vault created</div>
-          <div id="roi-break" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px"></div>
-          <div id="roi-drivers" style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;color:#AEB4C6;font-size:12.5px"></div>
+          <div id="roi-break" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px"></div>
+          <div id="roi-drivers" style="margin-top:14px;display:flex;gap:16px;flex-wrap:wrap;color:#AEB4C6;font-size:12.5px"></div>
         </div>
         <div class="card">
-          <div class="hd"><h3>🔗 Knowledge graph</h3><a class="more" href="#" onclick="return false">entities &amp; relationships</a></div>
-          <div id="graph-stats" class="muted">Loading…</div>
-          <div id="graph-top" style="margin-top:12px"></div>
+          <div class="hd"><h3>🔗 Knowledge graph</h3><span class="muted" id="graph-stats"></span></div>
+          <div id="graph-top"></div>
         </div>
         <div class="card">
-          <div class="hd"><h3>🔌 Workplace integrations</h3><span class="muted">capture &amp; surface memory where teams work</span></div>
-          <div id="integrations"></div>
+          <div class="hd"><h3>📣 Signals your AIs are hearing</h3><span class="muted">repeated patterns worth acting on</span></div>
+          <div id="signals"></div>
         </div>
       </div>
       <div class="stack">
         <div class="card">
           <div class="hd"><h3>🧪 Memory quality</h3><span class="muted">reliability scorecard</span></div>
           <div style="display:flex;align-items:center;gap:16px">
-            <div id="eval-grade" style="width:74px;height:74px;border-radius:50%;display:grid;place-items:center;font-size:30px;font-weight:800;background:var(--green-soft);color:var(--green);flex:none">—</div>
-            <div><div id="eval-overall" style="font-size:26px;font-weight:800">—</div><div class="muted">overall memory health</div></div>
+            <div id="eval-grade" style="width:68px;height:68px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:800;background:var(--green-soft);color:var(--green);flex:none">—</div>
+            <div><div id="eval-overall" style="font-size:24px;font-weight:800">—</div><div class="muted">overall memory health</div></div>
           </div>
-          <div id="eval-dims" style="margin-top:16px;display:flex;flex-direction:column;gap:10px"></div>
+          <div id="eval-dims" style="margin-top:14px;display:flex;flex-direction:column;gap:9px"></div>
         </div>
         <div class="card">
-          <div class="hd"><h3>🤖 Model governance</h3><span class="muted">no silent swaps</span></div>
-          <div id="model-deps"></div>
-        </div>
-        <div class="card">
-          <div class="hd"><h3>⚡ Real-time write-back</h3><span class="muted">live push, not batch</span></div>
-          <div id="rt-subs" class="muted">Loading…</div>
+          <div class="hd"><h3>🔌 Workplace integrations</h3></div>
+          <div id="integrations"></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ============ SOURCES / CONNECT ============ -->
-  <section class="view" id="v-sources">
-    <div class="secttl">Connected AIs</div>
-    <div class="card"><div id="sources"></div></div>
-    <div class="secttl">Connect any AI</div>
-    <div class="two">
-      <div class="card"><h3>Add by API</h3><p class="muted" style="margin:8px 0 0">Point us at any tool — a PDF-maker, a transcriber, anything. No code.</p></div>
-      <div class="card"><h3>Webhook / Upload</h3><p class="muted" style="margin:8px 0 0">Push from 6,000+ apps via Zapier, or drop a JSON/CSV export.</p></div>
+  <!-- ============ POLICY ============ -->
+  <section class="view" id="v-policy">
+    <div class="card">
+      <div class="hd"><h3>Company rules — enforced on every write</h3>
+        <button class="btn sm solid" onclick="toggleRuleForm()">+ Add rule</button></div>
+      <div id="rule-form" style="display:none;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--bg)">
+        <div class="formrow">
+          <input id="r-id" placeholder="rule id, e.g. no-discounts" style="flex:1">
+          <select id="r-sev"><option value="warn">warn</option><option value="critical">critical (quarantine)</option></select>
+        </div>
+        <label class="f">Description</label>
+        <input id="r-desc" placeholder="e.g. Agents must never promise discounts over 20%" style="width:100%">
+        <label class="f">Trigger keywords (comma separated)</label>
+        <input id="r-kw" placeholder="e.g. discount, % off, free month" style="width:100%">
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn solid" onclick="saveRule()">Save rule</button>
+          <button class="btn" onclick="toggleRuleForm()">Cancel</button>
+        </div>
+      </div>
+      <div id="rules"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="hd"><h3>Who sees what</h3><span class="muted">namespace walls per agent role — from policies/default.yaml</span></div>
+      <div id="acl"></div>
     </div>
   </section>
 
-  <!-- ============ SECURITY & COMPLIANCE ============ -->
-  <section class="view" id="v-security">
-    <div class="secttl">Security &amp; compliance</div>
-    <div id="sec"></div>
+  <!-- ============ AUDIT ============ -->
+  <section class="view" id="v-audit">
+    <div class="grid23">
+      <div class="card">
+        <div class="hd"><h3>Full audit log</h3>
+          <button class="btn sm" onclick="verifyChain()">🔗 Verify chain integrity</button></div>
+        <div class="tl" id="tl2"></div>
+      </div>
+      <div class="card">
+        <div class="hd"><h3>Deletion receipts</h3><span class="muted">signed proof, bound to the chain</span></div>
+        <div id="receipts"></div>
+      </div>
+    </div>
   </section>
-</main>
+
+  <!-- ============ SECURITY ============ -->
+  <section class="view" id="v-security">
+    <div class="grid2">
+      <div class="card"><h3>🛑 Kill switch</h3>
+        <p class="muted" style="margin:8px 0 12px">Emergency freeze — stop all memory writes instantly.</p>
+        <div style="display:flex;gap:8px">
+          <button class="btn solid" onclick="ksFreeze()">Freeze all writes</button>
+          <button class="btn" onclick="ksRelease()">Release</button></div>
+        <p class="muted" style="margin-top:10px">Status: <b id="ks-status">…</b></p></div>
+      <div class="card"><h3>🔎 Anomaly detection <span class="chip grey" id="an-count">0</span></h3>
+        <p class="muted" style="margin:8px 0 10px">Cross-session poisoning &amp; write-burst patterns (OWASP ASI06).</p>
+        <div id="anomalies"></div></div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="card"><h3>🪪 Consent (GDPR / DPDP)</h3>
+        <p class="muted" style="margin:8px 0 10px">Withdrawing consent purges that person's memory, with a receipt.</p>
+        <div class="formrow">
+          <input id="cons-subj" placeholder="subject, e.g. customer:acme">
+          <button class="btn" onclick="consent(true)">Grant</button>
+          <button class="btn danger" onclick="consent(false)">Withdraw &amp; purge</button>
+        </div>
+        <div id="cons-status" class="muted" style="margin-top:8px"></div></div>
+      <div class="card"><h3>⚡ Real-time write-back</h3>
+        <p class="muted" style="margin:8px 0 10px">Push every memory event to an endpoint the moment it happens.</p>
+        <div class="formrow">
+          <input id="rt-url" placeholder="https://your-app.com/hook" style="flex:2">
+          <button class="btn solid" onclick="rtSubscribe()">Subscribe</button>
+        </div>
+        <div id="rt-subs" style="margin-top:8px"></div></div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="card"><h3>🤖 Model governance</h3>
+        <p class="muted" style="margin:8px 0 10px">Approved models are pinned — nothing changes under you.</p>
+        <div id="model-deps"></div></div>
+      <div class="card"><h3>📄 Compliance evidence</h3>
+        <div id="comp"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn solid sm" onclick="dlReport()">⬇ Compliance report</button>
+          <button class="btn sm" onclick="dlSiem()">⬇ SIEM export (CEF)</button>
+        </div></div>
+    </div>
+  </section>
+
+  </div>
+</div>
+
+<!-- trace drawer -->
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dh"><h3 id="dr-title">Memory</h3><button class="tbtn" onclick="closeDrawer()">✕</button></div>
+  <div class="db" id="dr-body"></div>
+</div>
+
+<!-- command palette -->
+<div class="pal" id="pal" onclick="if(event.target===this)closePal()">
+  <div class="palbox">
+    <input id="pal-q" placeholder="Type a command or destination…">
+    <div class="palist" id="pal-list"></div>
+  </div>
+</div>
 
 <script>
 const API=location.origin;
 let KEY=localStorage.getItem("mv_key")||"";
 const $=s=>document.querySelector(s);
-const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>(""+(s??"")).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 async function api(path,opts={}){opts.headers=Object.assign({"x-api-key":KEY,"content-type":"application/json"},opts.headers||{});
-  const r=await fetch(API+path,opts);if(!r.ok)throw new Error(r.status);return r.status===204?null:r.json();}
-function toast(m){let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";document.body.appendChild(t);}
-  t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
-
-const TABS=[["dashboard","Dashboard"],["memory","Memory"],["insights","Insights"],["sources","Sources"],["policy","Policy"],["audit","Audit"],["security","Security"]];
-let tab="dashboard";
-const nav=document.getElementById("nav");
-function renderNav(){nav.innerHTML="";TABS.forEach(([id,l])=>{const b=document.createElement("button");
-  b.className=id===tab?"active":"";b.textContent=l;b.onclick=()=>go(id);nav.appendChild(b);});}
-function go(id){tab=id;renderNav();document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-  const el=document.getElementById("v-"+id);if(el)el.classList.add("active");scrollTo({top:0,behavior:"smooth"});loadTab(id);}
-document.addEventListener("click",e=>{const g=e.target.closest("[data-go]");if(g){e.preventDefault();go(g.dataset.go);}});
-document.getElementById("themeBtn").onclick=()=>{const c=document.documentElement.getAttribute("data-theme");
-  const n=c==="dark"?"light":(c==="light"?"dark":(matchMedia("(prefers-color-scheme: dark)").matches?"light":"dark"));
-  document.documentElement.setAttribute("data-theme",n);draw();};
-
-const ini=n=>(n||"?").split(" ").map(w=>w[0]).slice(0,2).join("");
+  const r=await fetch(API+path,opts);
+  if(!r.ok){let d="";try{d=(await r.json()).detail||"";}catch(e){}throw new Error(d||("HTTP "+r.status));}
+  return r.status===204?null:r.json();}
+function toast(m,bad){let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";document.body.appendChild(t);}
+  t.textContent=m;t.style.background=bad?"var(--red)":"var(--hero)";
+  t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2800);}
+const ini=n=>(n||"?").split(/[\s._-]+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
 const SRCMETA={salesforce_agentforce:["Salesforce","#00A1E0"],microsoft_copilot:["Copilot","#7A5CFA"],
   chatgpt_enterprise:["ChatGPT","#10A37F"],claude:["Claude","#D97757"],intercom_fin:["Intercom","#1F8DED"],
   email_ingest:["Email","#DC4C50"],mem0:["Mem0","#4B57E8"],zep:["Zep","#1F9D6B"],custom_mcp:["Custom","#4B57E8"],web_ingest:["Web","#C2860B"]};
-const sname=s=>(SRCMETA[s]||[s,"#4B57E8"])[0];
+const sname=s=>(SRCMETA[s]||[s||"manual","#4B57E8"])[0];
 const scol=s=>(SRCMETA[s]||[s,"#4B57E8"])[1];
+const usd=n=>"$"+(n||0).toLocaleString();
 
-// ---------- actions ----------
+/* ============ nav ============ */
+const PAGES=[
+ ["home","Home","🏠","Everything at a glance"],
+ ["review","Needs review","🚩","Approve or reject what's waiting at the door"],
+ ["memory","Memory","🧠","Search, trace, and erase any memory"],
+ ["connections","Connections","🔌","Your AIs, custom tools, uploads and webhooks"],
+ ["insights","Insights","📈","ROI, quality, knowledge graph, signals"],
+ ["policy","Policy","📜","Company rules and who-sees-what walls"],
+ ["audit","Audit","🧾","Tamper-evident log and deletion receipts"],
+ ["security","Security","🛡","Kill switch, consent, compliance, anomalies"]];
+let tab="home", reviewCount=0;
+function renderNav(){const n=$("#nav");n.innerHTML="";
+  PAGES.forEach(([id,l,ic])=>{const b=document.createElement("button");
+    b.className=id===tab?"active":"";b.dataset.nav=id;
+    b.innerHTML=`<span class="ico">${ic}</span><span class="lb">${l}</span>`+
+      (id==="review"?`<span class="bdg ${reviewCount?'':'zero'}" id="nav-bdg">${reviewCount}</span>`:"");
+    b.onclick=()=>go(id);n.appendChild(b);});}
+function go(id){tab=id;renderNav();
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  $("#v-"+id).classList.add("active");
+  const p=PAGES.find(p=>p[0]===id);$("#pg-title").textContent=p[1];$("#pg-sub").textContent=p[3];
+  scrollTo({top:0});loadTab(id);}
+document.addEventListener("click",e=>{const g=e.target.closest("[data-go]");if(g){e.preventDefault();go(g.dataset.go);}});
+$("#themeBtn").onclick=()=>{const c=document.documentElement.getAttribute("data-theme");
+  const n=c==="dark"?"light":(c==="light"?"dark":(matchMedia("(prefers-color-scheme: dark)").matches?"light":"dark"));
+  document.documentElement.setAttribute("data-theme",n);loadHome();};
+
+/* global search: type anywhere -> Memory */
+$("#gq").addEventListener("keydown",e=>{if(e.key==="Enter"){$("#q").value=$("#gq").value;go("memory");renderSearch();}});
+document.addEventListener("keydown",e=>{
+  if(e.key==="/"&&!/input|select|textarea/i.test(document.activeElement.tagName)){e.preventDefault();$("#gq").focus();}
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();openPal();}
+  if(e.key==="Escape"){closePal();closeDrawer();}});
+
+/* ============ command palette ============ */
+const COMMANDS=[
+ ...PAGES.map(([id,l,ic])=>({label:`Go to ${l}`,ico:ic,run:()=>go(id)})),
+ {label:"Run Rescue — pull memory from all AIs",ico:"⤵",run:runRescue},
+ {label:"Sync all sources now",ico:"🔄",run:doSync},
+ {label:"Clean — dedupe & retire stale facts",ico:"🧹",run:doClean},
+ {label:"Freeze all writes (kill switch)",ico:"🛑",run:ksFreeze},
+ {label:"Release kill switch",ico:"🟢",run:ksRelease},
+ {label:"Verify audit chain integrity",ico:"🔗",run:verifyChain},
+ {label:"Add a policy rule",ico:"📜",run:()=>{go("policy");toggleRuleForm(true);}},
+ {label:"Connect an AI",ico:"🔌",run:()=>{go("connections");$("#cx-name").focus();}},
+ {label:"Download compliance report",ico:"📄",run:dlReport}];
+let palSel=0;
+function openPal(){$("#pal").classList.add("open");$("#pal-q").value="";palSel=0;renderPal();$("#pal-q").focus();}
+function closePal(){$("#pal").classList.remove("open");}
+function palItems(){const q=$("#pal-q").value.toLowerCase();
+  return COMMANDS.filter(c=>c.label.toLowerCase().includes(q));}
+function renderPal(){const items=palItems();
+  $("#pal-list").innerHTML=items.map((c,i)=>
+    `<div class="pi ${i===palSel?'sel':''}" data-i="${i}">${c.ico} ${esc(c.label)}${i===palSel?'<span class="k">↵</span>':''}</div>`).join("")
+   ||'<div class="pi">No matches</div>';
+  document.querySelectorAll("#pal-list .pi").forEach(el=>el.onclick=()=>{const c=palItems()[+el.dataset.i];if(c){closePal();c.run();}});}
+$("#pal-q").addEventListener("input",()=>{palSel=0;renderPal();});
+$("#pal-q").addEventListener("keydown",e=>{const items=palItems();
+  if(e.key==="ArrowDown"){palSel=Math.min(palSel+1,items.length-1);renderPal();e.preventDefault();}
+  if(e.key==="ArrowUp"){palSel=Math.max(palSel-1,0);renderPal();e.preventDefault();}
+  if(e.key==="Enter"&&items[palSel]){closePal();items[palSel].run();}});
+
+/* ============ shared actions ============ */
 async function runRescue(){toast("Rescuing memory from all AIs…");
-  await api("/api/rescue",{method:"POST",body:JSON.stringify({systems:["salesforce_agentforce","chatgpt_enterprise","intercom_fin","email_ingest"],clean:true})});
-  toast("Recovered — memory in your vault");loadDashboard();}
-async function doSync(){await api("/api/sync",{method:"POST"});toast("Synced every AI");loadDashboard();}
-async function doClean(){const r=await api("/api/clean",{method:"POST"});toast("Cleaned "+r.dedupe.merged+" dup · "+r.expire.expired+" stale retired");loadDashboard();}
+  try{const r=await api("/api/rescue",{method:"POST",body:JSON.stringify({systems:["salesforce_agentforce","chatgpt_enterprise","intercom_fin","email_ingest"],clean:true})});
+    toast(`Recovered ${r.total_recovered} memories — ${r.chain_intact?"chain intact ✓":"check chain!"}`);}catch(e){toast(e.message,1);}
+  refreshBadge();loadTab(tab);}
+async function doSync(){try{await api("/api/sync",{method:"POST"});toast("Synced every connected AI");}catch(e){toast(e.message,1);}loadTab(tab);}
+async function doClean(){try{const r=await api("/api/clean",{method:"POST"});
+  toast(`Cleaned: ${r.dedupe.merged} duplicates merged · ${r.expire.expired} stale retired`);}catch(e){toast(e.message,1);}loadTab(tab);}
+async function refreshBadge(){try{const [a,f]=await Promise.all([api("/api/approvals"),api("/api/flagged")]);
+  const flaggedActive=f.memories.filter(m=>m.status==="active"&&(m.flags||[]).some(x=>x.startsWith("policy"))).length;
+  reviewCount=a.count+flaggedActive;const b=$("#nav-bdg");if(b){b.textContent=reviewCount;b.className="bdg "+(reviewCount?"":"zero");}}catch(e){}}
 
-// ---------- dashboard ----------
-async function loadDashboard(){
-  let counts={},hs={},flag={},conn={};
-  try{[counts,hs,flag,conn]=await Promise.all([api("/api/counts"),api("/api/health-score"),api("/api/flagged"),api("/api/connectors")]);}catch(e){return;}
+/* ============ HOME ============ */
+async function loadHome(){
+  let counts={},hs={},roi={},appr={count:0},flag={memories:[]},chain={intact:true},ks={};
+  try{[counts,hs,roi,appr,flag,chain,ks]=await Promise.all([
+    api("/api/counts"),api("/api/health-score"),api("/api/roi"),
+    api("/api/approvals"),api("/api/flagged"),api("/api/verify-chain"),api("/api/killswitch")]);}catch(e){return;}
   const active=counts.active||0;
-  $("#k-total").textContent=active.toLocaleString();
-  $("#k-flag").textContent=flag.count||0;
-  const live=(conn.live_env||[]).length, cust=(conn.custom||[]).length, avail=(conn.available||[]).length;
-  $("#k-src").textContent=avail;$("#k-src-d").innerHTML=(live?live+" live · ":"")+cust+" custom";
-  $("#k-health").textContent=(hs.score||"—")+(hs.grade?" ":"");$("#k-health-d").textContent=(hs.grade||"")+" · fresh & clean";
-  // recent memory cards
-  let recent=[];try{recent=(await api("/api/memories?q=&limit=6&agent=admin")).memories;}catch(e){}
-  if(!recent.length){$("#memrow").innerHTML='<p class="muted" style="grid-column:1/-1;padding:16px 0">No memory yet — click <b>Run Rescue</b> above to pull it from your AIs.</p>';}
-  else $("#memrow").innerHTML=recent.slice(0,3).map(m=>memCard(m)).join("");
-  // audit timeline
-  loadAudit("#tl",8);
-  // sources list + charts
-  renderSources(conn);
-  drawFromCounts(counts,conn);
+  // Q1 safety
+  $("#h-safe").innerHTML=`${hs.grade||"—"} <span style="font-size:15px;font-weight:700;color:var(--dim)">${hs.score||""}/100</span>`;
+  $("#h-safe-d").innerHTML=`${active} active memories · audit chain ${chain.intact?'<b style="color:var(--green)">intact ✓</b>':'<b style="color:var(--red)">BROKEN</b>'} · writes ${ks.global?'<b style="color:var(--red)">FROZEN</b>':'<b style="color:var(--green)">live</b>'}`;
+  // Q2 review
+  const flaggedActive=flag.memories.filter(m=>m.status==="active"&&(m.flags||[]).some(x=>x.startsWith("policy"))).length;
+  reviewCount=appr.count+flaggedActive;renderNav();
+  $("#h-review").innerHTML=`${reviewCount} <span style="font-size:15px;font-weight:700;color:var(--dim)">item${reviewCount===1?"":"s"}</span>`;
+  $("#h-review-d").textContent=reviewCount?`${appr.count} held at the door · ${flaggedActive} flagged by policy — click to review`:"Nothing waiting on you. All clear.";
+  // Q3 value
+  $("#h-roi").textContent=usd(roi.total_value_usd);
+  const d=roi.drivers||{};
+  $("#h-roi-d").textContent=`${d.memories_reused||0} reuses · ${d.incidents_prevented||0} incidents caught · ${d.hours_saved||0} hrs saved`;
+  // latest memory
+  let recent=[];try{recent=(await api("/api/memories?q=&limit=4&agent=admin")).memories;}catch(e){}
+  $("#home-mem").innerHTML=recent.length?recent.slice(0,4).map(m=>memRow(m)).join("")
+    :`<div class="empty"><div class="big">🧠</div>No memory yet.<br><button class="btn solid" style="margin-top:12px" onclick="runRescue()">⤵ Rescue memory from your AIs</button></div>`;
+  loadAudit("#tl",7);
+  drawCharts(recent.length?null:null);
 }
-function flagChip(m){
-  if((m.flags||[]).some(f=>f.startsWith("policy")))return["red","Flagged — policy"];
-  if(m.status==="quarantined")return["amber","Held — review"];
-  if((m.flags||[]).includes("pii"))return["purple","PII"];
-  return["green","Clean"];}
-function memCard(m){const p=m.provenance||{};const fc=flagChip(m);
-  return `<div class="memcard"><div class="top">
+function statusChip(m){
+  if((m.flags||[]).some(f=>f.startsWith("policy")))return `<span class="chip red">🚩 policy</span>`;
+  if(m.status==="quarantined")return `<span class="chip amber">held</span>`;
+  if(m.status==="superseded")return `<span class="chip grey">superseded</span>`;
+  if((m.flags||[]).includes("pii"))return `<span class="chip purple">PII</span>`;
+  return `<span class="chip green">clean</span>`;}
+function memRow(m){const p=m.provenance||{};
+  return `<div class="listrow" style="cursor:pointer" onclick="openTrace('${m.id}')">
     <div class="av" style="width:34px;height:34px;background:${scol(p.source_system)}">${esc(ini(p.employee||sname(p.source_system)))}</div>
-    <div><div class="nm">${esc(p.employee||"—")}</div><div class="role">${esc((p.department||"")+" · "+sname(p.source_system))}</div></div>
-    <span style="margin-left:auto"></span><span class="chip ${fc[0]}">${fc[1]}</span></div>
-    <div class="txt">${esc(m.content)}</div>
-    <div class="src">📍 from ${esc(sname(p.source_system))} · conv ${esc(p.conversation_id||"—")}</div>
-    <div class="acts"><button class="abtn" onclick="trace('${m.id}')">🧭 Trace</button>
-      <button class="abtn" onclick="delMem('${m.id}')">🗑 Delete</button></div></div>`;}
-async function trace(id){try{const d=await api("/api/memories/"+id+"/why");const h=await api("/api/memories/"+id+"/history");
-  toast("Traced: written "+(h.history[0]?.ts||"").slice(0,10)+" · used "+d.retrievals.length+" times");}catch(e){}}
-async function delMem(id){await api("/api/memories/"+id,{method:"DELETE"});toast("Deleted (with receipt)");loadDashboard();}
+    <div class="txt"><b>${esc(m.content)}</b><br>
+      <span class="muted" style="font-size:12px">${esc(p.employee||"—")} · ${esc(sname(p.source_system))}${p.conversation_id?" · conv "+esc(p.conversation_id):""}</span></div>
+    ${statusChip(m)}</div>`;}
 
-// ---------- audit timeline ----------
+/* charts: 100% real data */
+function ink(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+async function drawCharts(){
+  let all=[];try{all=(await api("/api/memories?q=&limit=500&agent=admin")).memories;}catch(e){}
+  // namespaces bar
+  const byNs={};all.forEach(m=>{byNs[m.namespace||"general"]=(byNs[m.namespace||"general"]||0)+1;});
+  const nsData=Object.entries(byNs).sort((a,b)=>b[1]-a[1]);
+  $("#ns-total").textContent=all.length+" active";
+  const colors=["#4B57E8","#1F9D6B","#8A56D6","#C2860B","#1F8DED","#DC4C50"];
+  const c=$("#bars");if(c){const x=c.getContext("2d");const w=c.clientWidth,h=150,dpr=Math.min(2,devicePixelRatio||1);
+    c.width=w*dpr;c.height=h*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+    const max=Math.max(1,...nsData.map(d=>d[1]));const bw=(w-12)/Math.max(nsData.length,1);
+    nsData.forEach((d,i)=>{const bh=(d[1]/max)*(h-30);const bx=6+i*bw+bw*0.15;
+      x.fillStyle=colors[i%colors.length];rr(x,bx,h-22-bh,bw*0.7,bh,6);
+      x.fillStyle=ink("--dim");x.font="600 11px -apple-system";x.textAlign="center";
+      x.fillText(d[0].slice(0,10),bx+bw*0.35,h-8);});}
+  $("#ns-legend").innerHTML=nsData.map((d,i)=>`<div class="r"><span class="sw" style="background:${colors[i%colors.length]}"></span>
+    <span class="nm">${esc(d[0])}</span><span class="n">${d[1]}</span></div>`).join("");
+  // source donut
+  const bySrc={};all.forEach(m=>{const s=(m.provenance||{}).source_system||"manual";bySrc[s]=(bySrc[s]||0)+1;});
+  let data=Object.entries(bySrc).map(([s,n])=>[sname(s),n,scol(s)]);
+  if(!data.length)data=[["No data",1,ink("--line")]];
+  const dc=$("#donut");if(dc){const x=dc.getContext("2d");const dpr=Math.min(2,devicePixelRatio||1);
+    dc.width=120*dpr;dc.height=120*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,120,120);
+    const tot=data.reduce((s,d)=>s+d[1],0);let a=-Math.PI/2;const cx=60,cy=60,R=48,r=31;
+    data.forEach(d=>{const ang=d[1]/tot*Math.PI*2;x.beginPath();x.arc(cx,cy,R,a,a+ang);x.arc(cx,cy,r,a+ang,a,true);x.closePath();x.fillStyle=d[2];x.fill();a+=ang;});
+    x.fillStyle=ink("--ink");x.font="800 18px -apple-system";x.textAlign="center";x.textBaseline="middle";x.fillText(tot,cx,cy-3);
+    x.fillStyle=ink("--dim");x.font="600 9px -apple-system";x.fillText("memories",cx,cy+11);}
+  $("#dlist").innerHTML=data.map(d=>`<div class="r"><span class="sw" style="background:${d[2]}"></span>
+    <span class="nm">${esc(d[0])}</span><span class="n">${d[1].toLocaleString()}</span></div>`).join("");}
+function rr(x,bx,by,bw,bh,r){if(bh<=0)return;r=Math.min(r,bw/2,bh/2);x.beginPath();x.moveTo(bx+r,by);
+  x.arcTo(bx+bw,by,bx+bw,by+bh,r);x.arcTo(bx+bw,by+bh,bx,by+bh,r);x.arcTo(bx,by+bh,bx,by,r);x.arcTo(bx,by,bx+bw,by,r);x.fill();}
+
+/* ============ audit timeline ============ */
 const ACTCOLOR={add:"green",delete:"grey",update:"brand",approve:"green",reject:"red",
-  superseded_by_conflict:"amber",dedupe_merged:"grey",expired_stale:"grey",legal_hold_on:"red",flagged_bias_risk:"amber"};
-async function loadAudit(sel,limit){let d={events:[]};try{d=await api("/api/audit?limit="+limit);}catch(e){}
-  const el=$(sel);if(!el)return;
-  el.innerHTML=d.events.map(e=>{const col=ACTOLOR(e.action);
-    return `<div class="row"><div class="time">${(e.ts||"").slice(11,16)}</div>
-    <div class="track"><div class="dot ${col}"></div></div>
-    <div class="body"><div class="act">${prettyAction(e.action)}</div>
-      <div class="who">${esc(e.actor)} · #${e.seq}</div></div></div>`;}).join("")
-    ||'<p class="muted">No activity yet.</p>';}
-function ACTOLOR(a){return ACTCOLOR_MAP(a);}
-function ACTCOLOR_MAP(a){for(const k in ACTCOLOR){if(a.startsWith(k))return ACTCOLOR[k];}return "brand";}
+  superseded:"amber",dedupe:"grey",expired:"grey",legal_hold:"red",flagged:"amber",rollback:"amber"};
+function actColor(a){for(const k in ACTCOLOR){if(a.startsWith(k))return ACTCOLOR[k];}return "brand";}
 function prettyAction(a){const map={add:"Memory written",delete:"Memory deleted (receipt issued)",
   update:"Memory updated",approve:"Approved into the brain",reject:"Rejected at the door",
   superseded_by_conflict:"Conflict resolved — newer memory won",dedupe_merged:"Duplicate merged",
-  expired_stale:"Stale fact retired (forgotten)",legal_hold_on:"Legal hold applied",
-  flagged_bias_risk:"Flagged as bias risk"};
+  expired_stale:"Stale fact retired",legal_hold_on:"Legal hold applied",legal_hold_off:"Legal hold released",
+  flagged_bias_risk:"Flagged as bias risk",rollback:"Rolled back"};
   for(const k in map){if(a.startsWith(k))return map[k];}return a;}
+async function loadAudit(sel,limit){let d={events:[]};try{d=await api("/api/audit?limit="+limit);}catch(e){}
+  const el=$(sel);if(!el)return;
+  el.innerHTML=d.events.map(e=>`<div class="row"><div class="time">${(e.ts||"").slice(11,16)}</div>
+    <div class="track"><div class="dot ${actColor(e.action)}"></div></div>
+    <div class="body"><div class="act">${prettyAction(e.action)}</div>
+      <div class="who">${esc(e.actor)} · #${e.seq}</div></div></div>`).join("")
+    ||'<p class="muted">No activity yet.</p>';}
 
-// ---------- sources + charts ----------
-function renderSources(conn){const el=$("#sources");if(!el)return;
+/* ============ NEEDS REVIEW ============ */
+async function loadReview(){
+  let appr={memories:[]},flag={memories:[]};
+  try{[appr,flag]=await Promise.all([api("/api/approvals"),api("/api/flagged")]);}catch(e){}
+  $("#rev-quar").innerHTML=appr.memories.map(m=>{const p=m.provenance||{};
+    return `<div class="rev"><div class="chip amber" style="flex:none;margin-top:2px">held</div>
+      <div class="why"><div class="content">${esc(m.content)}</div>
+        <div class="meta">from <b>${esc(sname(p.source_system))}</b> · channel: ${esc(p.channel||"?")} · trust ${(m.trust??0).toFixed(2)} — held because ${p.channel&&["email","web","upload","external_doc"].includes(p.channel)?"the channel is untrusted":"trust is below your threshold"}</div></div>
+      <div class="acts"><button class="btn sm solid" onclick="approve('${m.id}')">✓ Approve</button>
+        <button class="btn sm danger" onclick="reject('${m.id}')">✕ Reject</button></div></div>`;}).join("")
+   ||'<div class="empty"><div class="big">✅</div>Nothing held at the door.</div>';
+  const pf=flag.memories.filter(m=>m.status==="active"&&(m.flags||[]).some(f=>f.startsWith("policy")));
+  $("#rev-flag").innerHTML=pf.map(m=>{const p=m.provenance||{};
+    const rule=(m.flags.find(f=>f.startsWith("policy"))||"").split(":")[1]||"";
+    return `<div class="rev"><div class="chip red" style="flex:none;margin-top:2px">🚩 ${esc(rule)}</div>
+      <div class="why"><div class="content">${esc(m.content)}</div>
+        <div class="meta">by <b>${esc(p.employee||"—")}</b> · ${esc(sname(p.source_system))} — broke rule <b>${esc(rule)}</b></div></div>
+      <div class="acts"><button class="btn sm" onclick="openTrace('${m.id}')">Trace</button>
+        <button class="btn sm danger" onclick="delMem('${m.id}')">Delete</button></div></div>`;}).join("")
+   ||'<div class="empty"><div class="big">🎉</div>No active policy violations.</div>';}
+async function approve(id){try{await api(`/api/approvals/${id}/approve`,{method:"POST"});toast("Approved into the brain");}catch(e){toast(e.message,1);}refreshBadge();loadReview();}
+async function reject(id){try{await api(`/api/approvals/${id}/reject`,{method:"POST"});toast("Rejected — never enters memory");}catch(e){toast(e.message,1);}refreshBadge();loadReview();}
+async function delMem(id){try{await api("/api/memories/"+id,{method:"DELETE"});toast("Deleted — receipt issued");}catch(e){toast(e.message,1);}refreshBadge();loadTab(tab);}
+
+/* ============ MEMORY ============ */
+async function renderSearch(){const q=$("#q").value||"",st=$("#q-status").value;
+  let hits=[];try{hits=(await api(`/api/memories?q=${encodeURIComponent(q)}&limit=100&agent=admin&status=${st}`)).memories;}catch(e){}
+  $("#results").innerHTML=hits.map(m=>{const p=m.provenance||{};
+    return `<div class="listrow" style="cursor:pointer" onclick="openTrace('${m.id}')">
+      <div class="av" style="width:32px;height:32px;background:${scol(p.source_system)}">${esc(ini(p.employee||sname(p.source_system)))}</div>
+      <div class="txt" style="${m.status==='superseded'?'opacity:.55':''}"><b>${esc(m.content)}</b><br>
+        <span class="muted" style="font-size:12px">${esc(p.employee||"—")} · ${esc(sname(p.source_system))} · <span class="chip grey">${esc(m.namespace)}</span>${m.classification?` · <span class="chip ${m.classification==='restricted'?'red':m.classification==='confidential'?'amber':'grey'}">${esc(m.classification)}</span>`:""}</span></div>
+      <span class="trust"><i style="width:${(m.trust||0)*100}%"></i></span>
+      ${statusChip(m)}</div>`;}).join("")
+   ||`<div class="empty"><div class="big">🔍</div>No memories match “${esc(q)}”.</div>`;}
+$("#q")?.addEventListener("input",()=>renderSearch());
+$("#q-status")?.addEventListener("change",()=>renderSearch());
+async function eraseSubject(){const s=$("#erase-subj").value.trim();if(!s)return toast("Enter a subject first",1);
+  if(!confirm(`Erase EVERYTHING about "${s}"? A signed receipt will be issued.`))return;
+  try{const r=await api("/api/erase?subject="+encodeURIComponent(s),{method:"POST"});
+    toast(`Erased ${(r.memory_ids||[]).length} memories — receipt ${r.id.slice(0,8)}…`);}catch(e){toast(e.message,1);}
+  renderSearch();}
+async function legalHold(){const s=$("#erase-subj").value.trim();if(!s)return toast("Enter a subject first",1);
+  try{const r=await api(`/api/legal-hold?subject=${encodeURIComponent(s)}&on=true`,{method:"POST"});
+    toast(`Legal hold on ${r.held??0} memories — they cannot be deleted`);}catch(e){toast(e.message,1);}}
+
+/* trace drawer */
+async function openTrace(id){
+  $("#scrim").classList.add("open");$("#drawer").classList.add("open");
+  $("#dr-body").innerHTML='<p class="muted">Loading trace…</p>';
+  try{
+    const [m,h,w]=await Promise.all([api("/api/memories/"+id),
+      api(`/api/memories/${id}/history`),api(`/api/memories/${id}/why`)]);
+    const p=m.provenance||{};
+    $("#dr-title").textContent="Trace";
+    $("#dr-body").innerHTML=`
+      <div style="font-size:14.5px;font-weight:650;line-height:1.5">${esc(m.content)}</div>
+      <div style="margin:10px 0 16px;display:flex;gap:6px;flex-wrap:wrap">
+        ${statusChip(m)}<span class="chip grey">${esc(m.namespace)}</span>
+        ${m.classification?`<span class="chip ${m.classification==='restricted'?'red':m.classification==='confidential'?'amber':'grey'}">${esc(m.classification)}</span>`:""}
+        ${m.legal_hold?'<span class="chip red">legal hold</span>':""}</div>
+      <div class="secttl">Provenance — who wrote it</div>
+      <div class="listrow"><div class="av" style="width:34px;height:34px;background:${scol(p.source_system)}">${esc(ini(p.employee||sname(p.source_system)))}</div>
+        <div class="txt"><b>${esc(p.employee||"unknown")}</b> ${p.department?`· ${esc(p.department)}`:""}<br>
+        <span class="muted" style="font-size:12px">${esc(sname(p.source_system))} · channel ${esc(p.channel||"?")}${p.conversation_id?` · conv ${esc(p.conversation_id)}`:""}</span></div></div>
+      <div class="secttl">History — every change, hash-chained</div>
+      <div class="tl">${h.history.map(e=>`<div class="row"><div class="time">${(e.ts||"").slice(5,10)}</div>
+        <div class="track"><div class="dot ${actColor(e.action)}"></div></div>
+        <div class="body"><div class="act">${prettyAction(e.action)}</div><div class="who">${esc(e.actor)} · #${e.seq}</div></div></div>`).join("")||'<p class="muted">—</p>'}</div>
+      <div class="secttl">Which AIs read this (${w.retrievals.length})</div>
+      ${w.retrievals.slice(0,8).map(r=>`<div class="listrow"><span class="chip brand">${esc(r.agent)}</span>
+        <div class="txt muted" style="font-size:12.5px">"${esc(r.query||"(browse)")}" · ${(r.ts||"").slice(0,16).replace("T"," ")}</div></div>`).join("")||'<p class="muted">Never retrieved yet.</p>'}
+      <div style="margin-top:18px;display:flex;gap:8px">
+        <button class="btn danger" onclick="delMem('${m.id}');closeDrawer()">🗑 Delete (with receipt)</button>
+      </div>`;
+  }catch(e){$("#dr-body").innerHTML=`<p class="muted">Could not load trace: ${esc(e.message)}</p>`;}}
+function closeDrawer(){$("#scrim").classList.remove("open");$("#drawer").classList.remove("open");}
+
+/* ============ CONNECTIONS ============ */
+async function loadConnections(){let conn={};try{conn=await api("/api/connectors");}catch(e){return;}
   const avail=conn.available||[],live=conn.live_env||[],custom=(conn.custom||[]).map(c=>c.name);
-  el.innerHTML=avail.map(s=>{const isLive=live.includes(s),isCust=custom.includes(s);
-    return `<div class="listrow"><div class="av" style="width:36px;height:36px;background:${scol(s)}">${sname(s)[0]}</div>
-    <div class="txt"><b style="color:var(--ink)">${esc(sname(s))}</b><br><span class="muted" style="font-size:12px">${esc(s)}</span></div>
-    <span class="chip ${isLive?'green':isCust?'brand':'grey'}">${isLive?'live':isCust?'custom':'demo'}</span></div>`;}).join("");}
-function ink(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
-let LASTCOUNTS={},LASTCONN={};
-function drawFromCounts(counts,conn){LASTCOUNTS=counts;LASTCONN=conn;draw();}
-function draw(){drawBars();drawDonut();}
-function drawBars(){const c=document.getElementById("bars");if(!c)return;const x=c.getContext("2d");
-  const w=c.clientWidth,h=170,dpr=Math.min(2,devicePixelRatio||1);c.width=w*dpr;c.height=h*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
-  const A=[62,71,58,80,66,90,74,68,96,70,60,88,82,76,64,92,78,70],F=A.map(v=>v*0.18);const max=110,pad=6,bw=(w-pad*2)/A.length;
-  A.forEach((v,i)=>{const bx=pad+i*bw+bw*0.18,bw2=bw*0.64,bh=(v/max)*(h-pad*2),fh=(F[i]/max)*(h-pad*2);
-   x.fillStyle=ink("--line");rr(x,bx,pad+(h-pad*2)-bh-fh,bw2,fh,4);
-   x.fillStyle=ink("--brand");rr(x,bx,pad+(h-pad*2)-bh,bw2,bh,4);});}
-function rr(x,bx,by,bw,bh,r){if(bh<=0)return;r=Math.min(r,bw/2,bh/2);x.beginPath();x.moveTo(bx+r,by);
-  x.arcTo(bx+bw,by,bx+bw,by+bh,r);x.arcTo(bx+bw,by+bh,bx,by+bh,r);x.arcTo(bx,by+bh,bx,by,r);x.arcTo(bx,by,bx+bw,by,r);x.fill();}
-async function drawDonut(){const c=document.getElementById("donut");if(!c)return;const x=c.getContext("2d");
-  const dpr=Math.min(2,devicePixelRatio||1);c.width=130*dpr;c.height=130*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,130,130);
-  let bySrc={};try{const all=(await api("/api/memories?q=&limit=500&agent=admin")).memories;
-    all.forEach(m=>{const s=(m.provenance||{}).source_system||"other";bySrc[s]=(bySrc[s]||0)+1;});}catch(e){}
-  let data=Object.entries(bySrc).map(([s,n])=>[sname(s),n,scol(s)]);
-  if(!data.length)data=[["No data",1,ink("--line")]];
-  const tot=data.reduce((s,d)=>s+d[1],0);let a=-Math.PI/2;const cx=65,cy=65,R=52,r=34;
-  data.forEach(d=>{const ang=d[1]/tot*Math.PI*2;x.beginPath();x.arc(cx,cy,R,a,a+ang);x.arc(cx,cy,r,a+ang,a,true);x.closePath();x.fillStyle=d[2];x.fill();a+=ang;});
-  x.fillStyle=ink("--ink");x.font="800 19px -apple-system";x.textAlign="center";x.textBaseline="middle";x.fillText(tot,cx,cy-4);
-  x.fillStyle=ink("--dim");x.font="600 10px -apple-system";x.fillText("memories",cx,cy+12);
-  const dl=document.getElementById("dlist");if(dl)dl.innerHTML=data.map(d=>`<div class="r"><span class="sw" style="background:${d[2]}"></span>
-    <span class="nm">${esc(d[0])}</span><span class="n">${d[1].toLocaleString()}</span></div>`).join("");}
-addEventListener("resize",draw);
+  $("#sources").innerHTML=avail.map(s=>{const isLive=live.includes(s),isCust=custom.includes(s);
+    return `<div class="listrow"><div class="av" style="width:34px;height:34px;background:${scol(s)}">${sname(s)[0]}</div>
+    <div class="txt"><b>${esc(sname(s))}</b><br><span class="muted" style="font-size:12px">${esc(s)}</span></div>
+    ${isCust?`<button class="btn sm danger" onclick="removeConnector('${esc(s)}')">Remove</button>`:""}
+    <span class="chip ${isLive?'green':isCust?'brand':'grey'}">${isLive?'live':isCust?'custom':'demo'}</span></div>`;}).join("");
+  $("#wh-url").textContent=location.origin+(conn.ingest_url||"/api/ingest/…");
+  $("#wh-token").textContent=conn.ingest_token||"—";}
+async function addConnector(){const name=$("#cx-name").value.trim(),url=$("#cx-url").value.trim();
+  if(!name||!url)return toast("Name and base URL required",1);
+  try{await api("/api/connectors",{method:"POST",body:JSON.stringify({name,kind:"rest",config:{base_url:url}})});
+    toast(`Connected ${name} — it now feeds the vault`);$("#cx-name").value="";$("#cx-url").value="";}catch(e){toast(e.message,1);}
+  loadConnections();}
+async function removeConnector(name){try{await api("/api/connectors/"+encodeURIComponent(name),{method:"DELETE"});
+  toast("Removed "+name);}catch(e){toast(e.message,1);}loadConnections();}
+async function uploadFile(){const f=$("#up-file").files[0];if(!f)return toast("Choose a file first",1);
+  try{const r=await fetch(API+"/api/upload",{method:"POST",headers:{"x-api-key":KEY,"x-filename":f.name},body:await f.arrayBuffer()});
+    if(!r.ok)throw new Error("HTTP "+r.status);const d=await r.json();
+    toast(`Imported ${d.added} memories from ${f.name} — check Needs review`);}catch(e){toast(e.message,1);}
+  refreshBadge();}
 
-// ---------- memory search ----------
-async function renderSearch(){const q=($("#q")?.value||"");let hits=[];
-  try{hits=(await api("/api/memories?q="+encodeURIComponent(q)+"&limit=100&agent=admin")).memories;}catch(e){}
-  $("#results").innerHTML=hits.map(m=>{const p=m.provenance||{};const fc=flagChip(m);const supersede=m.status==="superseded";
-   return `<div class="listrow"><div class="chip ${fc[0]}" style="width:30px;height:30px;justify-content:center;padding:0;border-radius:9px">${(m.flags||[]).some(f=>f.startsWith('policy'))?'🚩':supersede?'🗂':'🧠'}</div>
-    <div class="txt" style="${supersede?'opacity:.55':''}"><b style="color:var(--ink)">${esc(m.content)}</b><br>
-      <span class="muted" style="font-size:12px">by ${esc(p.employee||'—')} · from ${esc(sname(p.source_system))} · <span class="chip grey">${esc(m.namespace)}</span></span></div>
-    <span class="trust"><i style="width:${(m.trust||0)*100}%"></i></span>
-    <span class="chip ${fc[0]}">${fc[1]}</span></div>`;}).join("")||`<p class="muted" style="padding:20px 0">No memories match “${esc(q)}”. Run Rescue first.</p>`;}
-
-// ---------- policy ----------
-async function loadPolicy(){let rules={rules:[]},flag={memories:[]};
-  try{[rules,flag]=await Promise.all([api("/api/policy/rules"),api("/api/flagged")]);}catch(e){}
-  $("#rules").innerHTML=rules.rules.map(r=>{const sc=r.severity==="critical"?"red":r.severity==="warn"?"amber":"grey";
-    return `<div class="listrow"><span class="chip ${sc}">${esc(r.severity).toUpperCase()}</span>
-    <div class="txt"><b style="color:var(--ink)">${esc(r.description)}</b><br><span class="muted" style="font-size:12px">${esc(r.kind)} rule</span></div>
-    <span class="chip ${r.enabled?'green':'grey'}">${r.enabled?'active':'off'}</span></div>`;}).join("");
-  const pf=flag.memories.filter(m=>(m.flags||[]).some(f=>f.startsWith("policy")));
-  $("#flagged").innerHTML=pf.map(m=>{const p=m.provenance||{};const rule=(m.flags.find(f=>f.startsWith("policy"))||"").split(":")[1]||"";
-    return `<div class="listrow"><span class="chip red" style="width:30px;height:30px;justify-content:center;padding:0;border-radius:9px">🚩</span>
-    <div class="txt"><b style="color:var(--ink)">${esc(m.content)}</b><br><span class="muted" style="font-size:12px">by ${esc(p.employee||'—')} · ${esc(sname(p.source_system))} · broke: <b style="color:var(--red)">${esc(rule)}</b></span></div>
-    <button class="abtn" style="flex:none;padding:7px 12px" onclick="approveFlag('${m.id}')">Approve</button></div>`;}).join("")||'<p class="muted" style="padding:14px 0">Nothing flagged. 🎉</p>';}
-async function approveFlag(id){try{await api("/api/approvals/"+id+"/approve",{method:"POST"});}catch(e){}toast("Approved");loadPolicy();}
-
-// ---------- security ----------
-async function loadSecurity(){let ks={},an={alerts:[]},rep={};
-  try{[ks,an,rep]=await Promise.all([api("/api/killswitch"),api("/api/anomalies"),api("/api/compliance/report")]);}catch(e){}
-  const el=$("#sec");if(!el)return;
-  el.innerHTML=`
-   <div class="two">
-     <div class="card"><h3>🛑 Kill switch</h3>
-       <p class="muted" style="margin:8px 0 12px">Emergency freeze — stop all memory writes instantly.</p>
-       <div style="display:flex;gap:8px">
-         <button class="abtn solid" style="flex:none;padding:9px 15px" onclick="ksFreeze()">Freeze all writes</button>
-         <button class="abtn" style="flex:none;padding:9px 15px" onclick="ksRelease()">Release</button></div>
-       <p class="muted" style="margin-top:10px">Status: <b style="color:${ks.global?'var(--red)':'var(--green)'}">${ks.global?'FROZEN':'live'}</b>${(ks.sources||[]).length?' · frozen sources: '+ks.sources.join(", "):''}</p></div>
-     <div class="card"><h3>🔎 Anomaly detection <span class="chip ${an.alerts.length?'red':'green'}">${an.alerts.length}</span></h3>
-       <p class="muted" style="margin:8px 0 10px">Cross-session poisoning &amp; write-burst patterns (OWASP ASI06).</p>
-       ${an.alerts.map(a=>`<div class="listrow"><span class="chip red">⚠</span><div class="txt">${esc(a.detail)} <span class="muted">(×${a.count||''})</span></div></div>`).join("")||'<p class="muted">No anomalies detected.</p>'}</div>
-   </div>
-   <div class="secttl">Compliance evidence (EU AI Act · SOC 2 · GDPR)</div>
-   <div class="card">
-     <div class="two">
-       <div><div class="muted">Event chain integrity</div><div style="font-size:20px;font-weight:800;color:var(--green)">${rep.integrity?.event_chain_intact?'PASS ✓':'—'}</div></div>
-       <div><div class="muted">Memories flagged / PII / on legal hold</div><div style="font-size:20px;font-weight:800">${rep.governance?.memories_flagged??0} · ${rep.governance?.memories_with_pii??0} · ${rep.governance?.memories_on_legal_hold??0}</div></div>
-     </div>
-     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">${(rep.controls_in_force||[]).map(c=>`<span class="chip brand">${esc(c)}</span>`).join("")}</div>
-     <button class="abtn solid" style="margin-top:14px;flex:none;padding:9px 15px" onclick="dlReport()">⬇ Export compliance report</button>
-   </div>`;}
-async function ksFreeze(){await api("/api/killswitch/freeze",{method:"POST"});toast("All writes frozen");loadSecurity();}
-async function ksRelease(){await api("/api/killswitch/release",{method:"POST"});toast("Released");loadSecurity();}
-async function dlReport(){const r=await api("/api/compliance/report");const blob=new Blob([JSON.stringify(r,null,2)],{type:"application/json"});
-  const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download="compliance-report.json";a.click();toast("Report downloaded");}
-
-// ---------- insights (ROI · quality · graph · governance) ----------
-const usd=n=>"$"+(n||0).toLocaleString();
+/* ============ INSIGHTS ============ */
 async function loadInsights(){
-  let roi={},ev={},g={},models={},ints={},rt={};
-  try{[roi,ev,g,models,ints,rt]=await Promise.all([
-    api("/api/roi"),api("/api/evals"),api("/api/graph"),api("/api/models"),
-    api("/api/integrations"),api("/api/realtime/subscribers")]);}catch(e){}
-  // ROI
+  let roi={},ev={},g={},ints={},sig={signals:[]};
+  try{[roi,ev,g,ints,sig]=await Promise.all([api("/api/roi"),api("/api/evals"),
+    api("/api/graph"),api("/api/integrations"),api("/api/insights")]);}catch(e){}
   $("#roi-total").textContent=usd(roi.total_value_usd);
   const b=roi.breakdown||{},d=roi.drivers||{};
-  $("#roi-break").innerHTML=[
-    ["Reuse / re-learning avoided",b.reuse_value_usd],
-    ["Incidents prevented",b.incidents_prevented_usd],
-    ["Cleanup dividend",b.cleanup_value_usd]].map(([l,v])=>
-    `<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:12px">
-      <div style="font-size:19px;font-weight:800">${usd(v)}</div><div style="color:#AEB4C6;font-size:11.5px;margin-top:4px">${l}</div></div>`).join("");
-  $("#roi-drivers").innerHTML=[
-    ["🧠",d.memories_active,"active"],["♻️",d.memories_reused,"reused"],
-    ["⏱",d.hours_saved,"hrs saved"],["🛡",d.incidents_prevented,"incidents caught"],
-    ["🧹",d.duplicates_removed,"dupes removed"]].map(([i,n,l])=>
-    `<span>${i} <b style="color:#fff">${(n??0).toLocaleString()}</b> ${l}</span>`).join("");
-  // Evals
-  const grade=ev.grade||"—",oc=(ev.overall>=90?["var(--green-soft)","var(--green)"]:ev.overall>=65?["var(--amber-soft)","var(--amber)"]:["var(--red-soft)","var(--red)"]);
-  const eg=$("#eval-grade");eg.textContent=grade;eg.style.background=oc[0];eg.style.color=oc[1];
+  $("#roi-break").innerHTML=[["Reuse / re-learning avoided",b.reuse_value_usd],
+    ["Incidents prevented",b.incidents_prevented_usd],["Cleanup dividend",b.cleanup_value_usd]].map(([l,v])=>
+    `<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:12px">
+      <div style="font-size:18px;font-weight:800">${usd(v)}</div><div style="color:#AEB4C6;font-size:11.5px;margin-top:3px">${l}</div></div>`).join("");
+  $("#roi-drivers").innerHTML=[["🧠",d.memories_active,"active"],["♻️",d.memories_reused,"reused"],
+    ["⏱",d.hours_saved,"hrs saved"],["🛡",d.incidents_prevented,"incidents caught"],["🧹",d.duplicates_removed,"dupes removed"]]
+    .map(([i,n,l])=>`<span>${i} <b style="color:#fff">${(n??0).toLocaleString()}</b> ${l}</span>`).join("");
+  const oc=(ev.overall>=90?["var(--green-soft)","var(--green)"]:ev.overall>=65?["var(--amber-soft)","var(--amber)"]:["var(--red-soft)","var(--red)"]);
+  const eg=$("#eval-grade");eg.textContent=ev.grade||"—";eg.style.background=oc[0];eg.style.color=oc[1];
   $("#eval-overall").textContent=(ev.overall??"—")+" / 100";
-  const dims=ev.dimensions||{};
-  $("#eval-dims").innerHTML=Object.entries(dims).map(([k,v])=>
+  $("#eval-dims").innerHTML=Object.entries(ev.dimensions||{}).map(([k,v])=>
     `<div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
       <span style="text-transform:capitalize;color:var(--ink2)">${k}</span><b class="num">${v}%</b></div>
      <span class="trust" style="width:100%;height:7px;display:block"><i style="width:${v}%"></i></span></div>`).join("");
-  // Graph
   const gs=g.stats||{};
-  $("#graph-stats").innerHTML=`<b style="color:var(--ink);font-size:19px">${gs.nodes||0}</b> entities · <b style="color:var(--ink);font-size:19px">${gs.edges||0}</b> relationships`;
-  const top=(g.nodes||[]).sort((a,b)=>b.memories-a.memories).slice(0,6);
-  $("#graph-top").innerHTML=top.map(n=>
+  $("#graph-stats").innerHTML=`<b style="color:var(--ink)">${gs.nodes||0}</b> entities · <b style="color:var(--ink)">${gs.edges||0}</b> relationships`;
+  $("#graph-top").innerHTML=(g.nodes||[]).sort((a,b)=>b.memories-a.memories).slice(0,6).map(n=>
     `<div class="listrow"><span class="chip ${n.kind==='customer'?'brand':n.kind==='entity'?'purple':'grey'}">${esc(n.kind)}</span>
-     <div class="txt"><b style="color:var(--ink)">${esc(n.label)}</b></div>
-     <span class="muted">${n.memories} memories</span></div>`).join("")||'<p class="muted">No entities yet.</p>';
-  // Integrations
+     <div class="txt"><b>${esc(n.label)}</b></div><span class="muted">${n.memories} memories</span></div>`).join("")
+   ||'<p class="muted">No entities yet.</p>';
+  $("#signals").innerHTML=(sig.signals||[]).map(s=>
+    `<div class="listrow"><span class="chip amber">×${s.count}</span>
+     <div class="txt"><b>${esc(s.pattern)}</b> keeps coming up<br>
+       <span class="muted" style="font-size:12px">e.g. “${esc(s.example||"")}”</span></div></div>`).join("")
+   ||'<p class="muted">No repeated signals yet — they appear when multiple AIs hear the same thing.</p>';
   $("#integrations").innerHTML=(ints.integrations||[]).map(it=>
-    `<div class="listrow"><div class="av" style="width:34px;height:34px;background:${it.color}">${esc(it.name[0])}</div>
-     <div class="txt"><b style="color:var(--ink)">${esc(it.name)}</b><br><span class="muted" style="font-size:12px">${esc(it.captures)}</span></div>
-     <span class="chip ${it.live?'green':'grey'}">${it.live?'connected':'available'}</span></div>`).join("");
-  // Model governance
+    `<div class="listrow"><div class="av" style="width:30px;height:30px;background:${it.color}">${esc(it.name[0])}</div>
+     <div class="txt"><b>${esc(it.name)}</b></div>
+     <span class="chip ${it.live?'green':'grey'}">${it.live?'connected':'available'}</span></div>`).join("");}
+
+/* ============ POLICY ============ */
+function toggleRuleForm(force){const f=$("#rule-form");
+  f.style.display=(force===true||f.style.display==="none")?"block":"none";
+  if(f.style.display==="block")$("#r-id").focus();}
+async function saveRule(){
+  const id=$("#r-id").value.trim(),desc=$("#r-desc").value.trim(),
+        kw=$("#r-kw").value.split(",").map(s=>s.trim()).filter(Boolean),sev=$("#r-sev").value;
+  if(!id||!desc||!kw.length)return toast("Need an id, description and at least one keyword",1);
+  try{await api("/api/policy/rules",{method:"POST",body:JSON.stringify({id,description:desc,kind:"keyword",config:{keywords:kw},severity:sev})});
+    toast(`Rule "${id}" is live — enforced on every write from now on`);toggleRuleForm();
+    $("#r-id").value="";$("#r-desc").value="";$("#r-kw").value="";}catch(e){toast(e.message,1);}
+  loadPolicy();}
+async function deleteRule(id){if(!confirm(`Remove rule "${id}"?`))return;
+  try{await api("/api/policy/rules/"+encodeURIComponent(id),{method:"DELETE"});toast("Rule removed");}catch(e){toast(e.message,1);}
+  loadPolicy();}
+async function loadPolicy(){let rules={rules:[]};try{rules=await api("/api/policy/rules");}catch(e){}
+  $("#rules").innerHTML=rules.rules.map(r=>{const sc=r.severity==="critical"?"red":r.severity==="warn"?"amber":"grey";
+    return `<div class="listrow"><span class="chip ${sc}">${esc(r.severity).toUpperCase()}</span>
+    <div class="txt"><b>${esc(r.description)}</b><br><span class="muted" style="font-size:12px">${esc(r.id)} · ${esc(r.kind)}</span></div>
+    <button class="btn sm danger" onclick="deleteRule('${esc(r.id)}')">Remove</button></div>`;}).join("")
+   ||'<p class="muted">No rules yet — add one above.</p>';
+  // ACL walls (static view of default policy roles)
+  const ACL=[["admin / owner","everything"],["sales_agent","sales + general"],["support_agent","support + general"],
+             ["hr_agent","hr + general"],["eng_agent","engineering + general"],["default","general only"]];
+  $("#acl").innerHTML=ACL.map(([who,what])=>`<div class="listrow"><span class="chip brand">${who}</span>
+    <div class="txt muted">can read: <b style="color:var(--ink)">${what}</b></div></div>`).join("");}
+
+/* ============ AUDIT ============ */
+async function loadAuditPage(){loadAudit("#tl2",60);
+  let r={receipts:[]};try{r=await api("/api/receipts");}catch(e){}
+  $("#receipts").innerHTML=r.receipts.slice(0,12).map(x=>
+    `<div class="listrow"><span class="chip ${x.kind==='subject_erasure'?'red':'grey'}">${esc(x.kind.replace("_"," "))}</span>
+     <div class="txt"><b>${esc(x.payload.subject||x.payload.memory_id||"")}</b><br>
+       <span class="muted" style="font-size:11.5px">${(x.ts||"").slice(0,16).replace("T"," ")} · sig ${esc((x.hash||"").slice(0,12))}…</span></div></div>`).join("")
+   ||'<p class="muted">No deletions yet — receipts appear when memory is erased.</p>';}
+async function verifyChain(){try{const r=await api("/api/verify-chain");
+  toast(r.intact?"Audit chain verified — no tampering ✓":"CHAIN BROKEN — records were modified!",!r.intact);}catch(e){toast(e.message,1);}}
+
+/* ============ SECURITY ============ */
+async function loadSecurity(){
+  let ks={},an={alerts:[]},rep={},models={},rt={};
+  try{[ks,an,rep,models,rt]=await Promise.all([api("/api/killswitch"),api("/api/anomalies"),
+    api("/api/compliance/report"),api("/api/models"),api("/api/realtime/subscribers")]);}catch(e){}
+  $("#ks-status").innerHTML=ks.global?'<span style="color:var(--red)">FROZEN</span>':'<span style="color:var(--green)">live</span>'
+    +((ks.sources||[]).length?` · frozen sources: ${ks.sources.join(", ")}`:"");
+  $("#an-count").textContent=(an.alerts||[]).length;
+  $("#an-count").className="chip "+((an.alerts||[]).length?"red":"green");
+  $("#anomalies").innerHTML=(an.alerts||[]).map(a=>
+    `<div class="listrow"><span class="chip red">⚠</span><div class="txt">${esc(a.detail)}${a.count?` <span class="muted">(×${a.count})</span>`:""}</div></div>`).join("")
+   ||'<p class="muted">No anomalies detected.</p>';
+  $("#comp").innerHTML=`
+    <div class="listrow"><div class="txt">Event chain integrity</div>
+      <b style="color:${rep.integrity?.event_chain_intact?'var(--green)':'var(--red)'}">${rep.integrity?.event_chain_intact?'PASS ✓':'FAIL'}</b></div>
+    <div class="listrow"><div class="txt">Flagged / PII / legal hold</div>
+      <b class="num">${rep.governance?.memories_flagged??0} · ${rep.governance?.memories_with_pii??0} · ${rep.governance?.memories_on_legal_hold??0}</b></div>
+    <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${(rep.controls_in_force||[]).slice(0,8).map(c=>`<span class="chip brand">${esc(c)}</span>`).join("")}</div>`;
   const deps=models.deprecations||[];
   $("#model-deps").innerHTML=
-    `<div class="muted" style="margin-bottom:10px">${(models.allowed||[]).length} approved models · pinned so nothing changes under you.</div>`+
+    `<div class="muted" style="margin-bottom:8px">${(models.allowed||[]).length} approved models</div>`+
     (deps.length?deps.map(m=>`<div class="listrow"><span class="chip amber">⚠ deprecated</span>
-      <div class="txt"><b style="color:var(--ink)">${esc(m.model)}</b><br><span class="muted" style="font-size:12px">retires ${esc(m.retires||'—')} — migrate before then</span></div></div>`).join("")
-     :'<p class="muted">All approved models are current. ✓</p>');
-  // Realtime
-  const subs=rt.subscribers||[];
-  $("#rt-subs").innerHTML=subs.length
-    ?subs.map(s=>`<div class="listrow"><span class="chip green">live</span><div class="txt"><b style="color:var(--ink)">${esc(s.url)}</b><br><span class="muted" style="font-size:12px">events: ${esc((s.events||[]).join(", "))}</span></div></div>`).join("")
-    :'<span class="muted">No subscribers yet. Register an endpoint (ERP, Slack, another agent) via <code>POST /api/realtime/subscribe</code> to get every memory event pushed the moment it changes.</span>';
-}
+      <div class="txt"><b>${esc(m.model)}</b><br><span class="muted" style="font-size:12px">retires ${esc(m.retires||"—")} — migrate before then</span></div></div>`).join("")
+     :'<p class="muted">All approved models are current ✓</p>');
+  renderSubs(rt.subscribers||[]);}
+function renderSubs(subs){$("#rt-subs").innerHTML=subs.length?subs.map(s=>
+    `<div class="listrow"><span class="chip green">live</span>
+     <div class="txt"><b>${esc(s.url)}</b><br><span class="muted" style="font-size:12px">events: ${esc((s.events||[]).join(", "))}</span></div>
+     <button class="btn sm danger" onclick="rtUnsub(${s.id})">Remove</button></div>`).join("")
+   :'<p class="muted">No subscribers yet.</p>';}
+async function rtSubscribe(){const url=$("#rt-url").value.trim();if(!url)return toast("Enter an endpoint URL",1);
+  try{await api("/api/realtime/subscribe",{method:"POST",body:JSON.stringify({url,events:["add","update","delete"]})});
+    toast("Subscribed — every memory event pushes there now");$("#rt-url").value="";}catch(e){toast(e.message,1);}
+  loadSecurity();}
+async function rtUnsub(id){try{await api("/api/realtime/subscribers/"+id,{method:"DELETE"});toast("Unsubscribed");}catch(e){toast(e.message,1);}loadSecurity();}
+async function consent(granted){const s=$("#cons-subj").value.trim();if(!s)return toast("Enter a subject",1);
+  if(!granted&&!confirm(`Withdraw consent for "${s}"? Their memory will be purged with a receipt.`))return;
+  try{await api(`/api/consent/${encodeURIComponent(s)}?granted=${granted}`,{method:"POST"});
+    const st=await api("/api/consent/"+encodeURIComponent(s));
+    $("#cons-status").innerHTML=`Status for <b>${esc(s)}</b>: ${st.granted!==false?'<span class="chip green">consented</span>':'<span class="chip red">withdrawn — memory purged</span>'}`;
+    toast(granted?"Consent recorded":"Consent withdrawn — memory purged");}catch(e){toast(e.message,1);}}
+async function ksFreeze(){try{await api("/api/killswitch/freeze",{method:"POST"});toast("All writes frozen");}catch(e){toast(e.message,1);}loadSecurity();}
+async function ksRelease(){try{await api("/api/killswitch/release",{method:"POST"});toast("Writes released");}catch(e){toast(e.message,1);}loadSecurity();}
+async function dlReport(){try{const r=await api("/api/compliance/report");dl(r,"compliance-report.json");toast("Compliance report downloaded");}catch(e){toast(e.message,1);}}
+async function dlSiem(){try{const r=await api("/api/siem/export");dl(r,"siem-export.json");toast("SIEM export downloaded");}catch(e){toast(e.message,1);}}
+function dl(obj,name){const b=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+  const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=name;a.click();}
 
-// ---------- tab loader ----------
-function loadTab(id){if(id==="dashboard")loadDashboard();else if(id==="memory")renderSearch();
-  else if(id==="insights")loadInsights();
-  else if(id==="policy")loadPolicy();else if(id==="audit")loadAudit("#tl2",100);
-  else if(id==="sources")api("/api/connectors").then(renderSources).catch(()=>{});
-  else if(id==="security")loadSecurity();}
-
-// ---------- boot ----------
-async function boot(){if(!KEY){try{KEY=(await (await fetch(API+"/api/demo-key")).text()).trim();localStorage.setItem("mv_key",KEY);}catch(e){}}
-  renderNav();loadDashboard();}
+/* ============ tab loader + boot ============ */
+function loadTab(id){({home:loadHome,review:loadReview,memory:renderSearch,connections:loadConnections,
+  insights:loadInsights,policy:loadPolicy,audit:loadAuditPage,security:loadSecurity}[id]||loadHome)();}
+async function boot(){
+  if(!KEY){try{KEY=(await (await fetch(API+"/api/demo-key")).text()).trim();localStorage.setItem("mv_key",KEY);}catch(e){}}
+  try{const me=await api("/api/me");
+    $("#me-name").textContent=me.name||me.role;$("#me-role").textContent=`${me.role} · ${me.org}`;
+    $("#me-av").textContent=ini(me.name||me.role);}catch(e){}
+  renderNav();loadHome();refreshBadge();}
 window.renderSearch=renderSearch;
 boot();
 </script>
