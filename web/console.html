@@ -383,6 +383,29 @@ label.f{font-size:12px;font-weight:700;color:var(--dim);display:block;margin:10p
     </div>
   </section>
 
+  <!-- ============ CHATS (the archive) ============ -->
+  <section class="view" id="v-chats">
+    <div class="card">
+      <div class="hd"><h3>Every conversation, stored whole</h3>
+        <span class="muted">the facts above came out of these — click any row to read it</span></div>
+      <div class="formrow">
+        <input id="cq" placeholder="Search inside every chat…" style="flex:2">
+        <select id="c-src"><option value="">all tools</option></select>
+        <select id="c-emp"><option value="">everyone</option></select>
+      </div>
+      <div id="chatlist" style="margin-top:6px"></div>
+    </div>
+  </section>
+
+  <!-- ============ PEOPLE (who did what) ============ -->
+  <section class="view" id="v-people">
+    <div class="card">
+      <div class="hd"><h3>What each person taught the AIs</h3>
+        <span class="muted">built from the stored record, so it can't drift out of sync</span></div>
+      <div id="peoplelist"></div>
+    </div>
+  </section>
+
   <!-- ============ POLICY ============ -->
   <section class="view" id="v-policy">
     <div class="card">
@@ -407,6 +430,28 @@ label.f{font-size:12px;font-weight:700;color:var(--dim);display:block;margin:10p
     <div class="card" style="margin-top:16px">
       <div class="hd"><h3>Who sees what</h3><span class="muted">namespace walls per agent role — from policies/default.yaml</span></div>
       <div id="acl"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="hd"><h3>What one AI actually receives</h3>
+        <span class="muted">one shared memory · each AI gets only its slice</span></div>
+      <div class="formrow">
+        <select id="ctx-agent">
+          <option value="sales_agent">sales_agent</option>
+          <option value="support_agent">support_agent</option>
+          <option value="hr_agent">hr_agent</option>
+          <option value="eng_agent">eng_agent</option>
+          <option value="default">default</option>
+          <option value="admin">admin</option>
+        </select>
+        <input id="ctx-q" placeholder="what is it asking about? e.g. acme" style="flex:2">
+        <select id="ctx-clear">
+          <option value="internal">clearance: internal</option>
+          <option value="confidential" selected>clearance: confidential</option>
+          <option value="restricted">clearance: restricted</option>
+        </select>
+        <button class="btn solid" onclick="testContext()">Show me</button>
+      </div>
+      <div id="ctxout" style="margin-top:10px"></div>
     </div>
   </section>
 
@@ -511,9 +556,11 @@ const PAGES=[
  ["home","Home","🏠","Everything at a glance"],
  ["review","Needs review","🚩","Approve or reject what's waiting at the door"],
  ["memory","Memory","🧠","Search, trace, and erase any memory"],
+ ["chats","Chats","💬","Every conversation, whole, and the facts drawn from it"],
+ ["people","People","👤","What each employee taught the AIs"],
  ["connections","Connections","🔌","Your AIs, custom tools, uploads and webhooks"],
  ["insights","Insights","📈","ROI, quality, knowledge graph, signals"],
- ["policy","Policy","📜","Company rules and who-sees-what walls"],
+ ["policy","Policy","📜","Company rules, walls, and what each AI can see"],
  ["audit","Audit","🧾","Tamper-evident log and deletion receipts"],
  ["security","Security","🛡","Kill switch, consent, compliance, anomalies"]];
 let tab="home", reviewCount=0;
@@ -582,14 +629,15 @@ async function refreshBadge(){try{const [a,f]=await Promise.all([api("/api/appro
 
 /* ============ HOME ============ */
 async function loadHome(){
-  let counts={},hs={},roi={},appr={count:0},flag={memories:[]},chain={intact:true},ks={};
-  try{[counts,hs,roi,appr,flag,chain,ks]=await Promise.all([
+  let counts={},hs={},roi={},appr={count:0},flag={memories:[]},chain={intact:true},ks={},cc={};
+  try{[counts,hs,roi,appr,flag,chain,ks,cc]=await Promise.all([
     api("/api/counts"),api("/api/health-score"),api("/api/roi"),
-    api("/api/approvals"),api("/api/flagged"),api("/api/verify-chain"),api("/api/killswitch")]);}catch(e){return;}
-  const active=counts.active||0;
+    api("/api/approvals"),api("/api/flagged"),api("/api/verify-chain"),
+    api("/api/killswitch"),api("/api/conversation-counts")]);}catch(e){return;}
+  const active=counts.active||0, chats=cc.active||0;
   // Q1 safety
   $("#h-safe").innerHTML=`${hs.grade||"—"} <span style="font-size:15px;font-weight:700;color:var(--dim)">${hs.score||""}/100</span>`;
-  $("#h-safe-d").innerHTML=`${active} active memories · audit chain ${chain.intact?'<b style="color:var(--green)">intact ✓</b>':'<b style="color:var(--red)">BROKEN</b>'} · writes ${ks.global?'<b style="color:var(--red)">FROZEN</b>':'<b style="color:var(--green)">live</b>'}`;
+  $("#h-safe-d").innerHTML=`${active} facts · ${chats} conversations stored whole · chain ${chain.intact?'<b style="color:var(--green)">intact ✓</b>':'<b style="color:var(--red)">BROKEN</b>'} · writes ${ks.global?'<b style="color:var(--red)">FROZEN</b>':'<b style="color:var(--green)">live</b>'}`;
   // Q2 review
   const flaggedActive=flag.memories.filter(m=>m.status==="active"&&(m.flags||[]).some(x=>x.startsWith("policy"))).length;
   reviewCount=appr.count+flaggedActive;renderNav();
@@ -894,9 +942,124 @@ async function dlSiem(){try{const r=await api("/api/siem/export");dl(r,"siem-exp
 function dl(obj,name){const b=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
   const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=name;a.click();}
 
+/* ============ CHATS — the archive ============ */
+let CHATFILTERS=false;
+async function loadChats(){
+  const q=$("#cq").value.trim(),src=$("#c-src").value,emp=$("#c-emp").value;
+  let d={conversations:[]};
+  try{d=await api(`/api/conversations?q=${encodeURIComponent(q)}&limit=100&agent=admin`
+    +(src?`&source_system=${encodeURIComponent(src)}`:"")
+    +(emp?`&employee=${encodeURIComponent(emp)}`:""));}catch(e){}
+  // populate the filter dropdowns once, from what's actually stored
+  if(!CHATFILTERS&&d.conversations.length){
+    CHATFILTERS=true;
+    const srcs=[...new Set(d.conversations.map(c=>c.source_system))].sort();
+    const emps=[...new Set(d.conversations.map(c=>c.employee).filter(Boolean))].sort();
+    $("#c-src").innerHTML='<option value="">all tools</option>'+srcs.map(s=>`<option value="${esc(s)}">${esc(sname(s))}</option>`).join("");
+    $("#c-emp").innerHTML='<option value="">everyone</option>'+emps.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  }
+  $("#chatlist").innerHTML=d.conversations.map(c=>{
+    const pol=(c.flags||[]).find(f=>f.startsWith("policy"));
+    return `<div class="listrow" style="cursor:pointer" onclick="openChat('${c.id}')">
+      <div class="av" style="width:32px;height:32px;background:${scol(c.source_system)}">${esc(ini(c.employee||sname(c.source_system)))}</div>
+      <div class="txt"><b>${esc(c.title||"(untitled chat)")}</b><br>
+        <span class="muted" style="font-size:12px">${esc(c.employee||"—")} · ${esc(sname(c.source_system))} ·
+        ${c.message_count} messages · ${(c.started_at||"").slice(0,10)}
+        ${c.fact_ids&&c.fact_ids.length?` · <b>${c.fact_ids.length}</b> facts`:""}</span></div>
+      ${c.legal_hold?'<span class="chip red">legal hold</span>':""}
+      ${(c.pii_types||[]).length?'<span class="chip purple">PII</span>':""}
+      ${pol?`<span class="chip red">🚩 ${esc(pol.split(":")[1]||"")}</span>`:""}
+      <span class="chip ${c.classification==='restricted'?'red':c.classification==='confidential'?'amber':'grey'}">${esc(c.classification||"—")}</span>
+    </div>`;}).join("")
+   ||`<div class="empty"><div class="big">💬</div>No conversations stored yet.<br>
+      <button class="btn solid" style="margin-top:12px" onclick="runRescue()">⤵ Pull chats from your AIs</button></div>`;
+}
+$("#cq")?.addEventListener("input",()=>loadChats());
+$("#c-src")?.addEventListener("change",()=>loadChats());
+$("#c-emp")?.addEventListener("change",()=>loadChats());
+
+async function openChat(id){
+  $("#scrim").classList.add("open");$("#drawer").classList.add("open");
+  $("#dr-title").textContent="Conversation";
+  $("#dr-body").innerHTML='<p class="muted">Loading transcript…</p>';
+  try{
+    const c=await api("/api/conversations/"+id);
+    const pol=(c.flags||[]).find(f=>f.startsWith("policy"));
+    $("#dr-body").innerHTML=`
+      <div style="font-size:14.5px;font-weight:650">${esc(c.title||"(untitled chat)")}</div>
+      <div style="margin:9px 0 14px;display:flex;gap:6px;flex-wrap:wrap">
+        <span class="chip grey">${esc(sname(c.source_system))}</span>
+        <span class="chip ${c.classification==='restricted'?'red':c.classification==='confidential'?'amber':'grey'}">${esc(c.classification||"—")}</span>
+        ${(c.pii_types||[]).length?`<span class="chip purple">PII: ${esc(c.pii_types.join(", "))}</span>`:""}
+        ${pol?`<span class="chip red">broke ${esc(pol.split(":")[1]||"")}</span>`:""}
+        ${c.legal_hold?'<span class="chip red">legal hold</span>':""}</div>
+      <div class="secttl">Who was in it</div>
+      <div class="listrow"><div class="av" style="width:32px;height:32px;background:${scol(c.source_system)}">${esc(ini(c.employee||"?"))}</div>
+        <div class="txt"><b>${esc(c.employee||"unknown")}</b> ${c.department?`· ${esc(c.department)}`:""}<br>
+        <span class="muted" style="font-size:12px">${esc(c.external_id||"")} · ${(c.started_at||"").slice(0,16).replace("T"," ")} · ${c.message_count} messages</span></div></div>
+      <div class="secttl">Transcript</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${(c.messages||[]).map(m=>`<div style="border:1px solid var(--line2);border-radius:10px;padding:9px 11px;background:${m.role==='user'?'var(--bg)':'var(--card)'}">
+          <div style="font-family:ui-monospace,monospace;font-size:10.5px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase">${esc(m.role)}</div>
+          <div style="font-size:13.5px;color:var(--ink2);margin-top:3px;line-height:1.55">${esc(m.content)}</div></div>`).join("")}
+      </div>
+      <div class="secttl">Facts drawn out of this chat (${(c.facts||[]).length})</div>
+      ${(c.facts||[]).map(f=>`<div class="listrow" style="cursor:pointer" onclick="openTrace('${f.id}')">
+        <div class="txt"><b>${esc(f.content)}</b><br><span class="muted" style="font-size:12px">${esc(f.subject)} · ${esc(f.attribute)} = ${esc(f.value)}</span></div>
+        ${statusChip(f)}</div>`).join("")||'<p class="muted">No facts were drawn from this chat.</p>'}
+      <div style="margin-top:18px"><button class="btn danger" onclick="delChat('${c.id}');closeDrawer()">🗑 Delete this chat (with receipt)</button></div>`;
+  }catch(e){$("#dr-body").innerHTML=`<p class="muted">Could not load: ${esc(e.message)}</p>`;}}
+async function delChat(id){try{const r=await api("/api/conversations/"+id,{method:"DELETE"});
+  toast(r.blocked?("Blocked: "+r.reason):"Chat deleted — receipt issued",!!r.blocked);}catch(e){toast(e.message,1);}
+  loadChats();}
+
+/* ============ PEOPLE — who did what ============ */
+async function loadPeople(){
+  let d={employees:[]};try{d=await api("/api/employees");}catch(e){}
+  $("#peoplelist").innerHTML=d.employees.map(p=>`
+    <div class="listrow">
+      <div class="av" style="width:34px;height:34px;background:linear-gradient(135deg,#4B57E8,#8A56D6)">${esc(ini(p.employee))}</div>
+      <div class="txt"><b>${esc(p.employee)}</b>${p.department?` <span class="chip grey">${esc(p.department)}</span>`:""}<br>
+        <span class="muted" style="font-size:12px">${p.facts} facts · ${p.conversations} chats · ${p.messages} messages ·
+        via ${esc(Object.keys(p.sources||{}).map(sname).join(", ")||"—")}${p.last_active?` · last ${(p.last_active||"").slice(0,10)}`:""}</span></div>
+      ${p.pii?`<span class="chip purple">${p.pii} PII</span>`:""}
+      ${p.held_for_review?`<span class="chip amber">${p.held_for_review} held</span>`:""}
+      ${p.flagged?`<span class="chip red">${p.flagged} flagged</span>`:'<span class="chip green">clean</span>'}
+      <button class="btn sm" onclick="event.stopPropagation();seePerson('${esc(p.employee)}')">Their chats</button>
+    </div>`).join("")||'<p class="muted">No attributed activity yet.</p>';
+}
+function seePerson(name){go("chats");setTimeout(()=>{$("#c-emp").value=name;loadChats();},60);}
+
+/* ============ what one AI actually receives ============ */
+async function testContext(){
+  const agent=$("#ctx-agent").value,q=$("#ctx-q").value.trim(),cl=$("#ctx-clear").value;
+  let b={},blocked={};
+  try{[b,blocked]=await Promise.all([
+    api(`/api/context?agent=${encodeURIComponent(agent)}&q=${encodeURIComponent(q)}&clearance=${cl}`),
+    api(`/api/context/blocked?agent=${encodeURIComponent(agent)}`)]);}catch(e){return toast(e.message,1);}
+  const ex=Object.entries(b.excluded||{});
+  $("#ctxout").innerHTML=`
+    <div class="listrow"><span class="chip brand">${esc(agent)}</span>
+      <div class="txt">can read <b>${esc((b.walls||[]).join(", "))}</b> · receives
+        <b>${(b.facts||[]).length}</b> facts and <b>${(b.conversations||[]).length}</b> chat excerpts
+        (~${b.tokens_estimate} tokens)</div>
+      <span class="chip ${blocked.blocked_facts?'amber':'green'}">${blocked.blocked_facts||0} walled off</span></div>
+    ${(b.facts||[]).slice(0,6).map(f=>`<div class="listrow">
+      <span class="chip ${f.classification==='restricted'?'red':f.classification==='confidential'?'amber':'grey'}">${esc(f.classification||"—")}</span>
+      <div class="txt">${esc(f.content)}<br><span class="muted" style="font-size:12px">taught by ${esc(f.taught_by||"—")} · via ${esc(sname(f.from_tool))}</span></div></div>`).join("")}
+    ${(b.conversations||[]).map(c=>`<div class="listrow"><span class="chip grey">chat excerpt</span>
+      <div class="txt"><b>${esc(c.title||c.external_id)}</b><br>
+      <span class="muted" style="font-size:12px;white-space:pre-wrap">${esc((c.excerpt||"").slice(0,180))}</span></div></div>`).join("")}
+    ${ex.length?`<p class="muted" style="margin-top:10px">Withheld: ${ex.map(([k,v])=>`${v} ${k.replace(/_/g," ")}`).join(" · ")}.
+      ${blocked.blocked_namespaces&&blocked.blocked_namespaces.length?`Walled off from: <b>${esc(blocked.blocked_namespaces.join(", "))}</b>.`:""}</p>`
+      :`<p class="muted" style="margin-top:10px">Nothing withheld for this request.${blocked.blocked_namespaces&&blocked.blocked_namespaces.length?` Still walled off from <b>${esc(blocked.blocked_namespaces.join(", "))}</b>.`:""}</p>`}
+    ${!(b.facts||[]).length?'<p class="muted">This AI receives nothing for that question — its walls exclude it entirely.</p>':""}`;
+}
+
 /* ============ tab loader + boot ============ */
-function loadTab(id){({home:loadHome,review:loadReview,memory:renderSearch,connections:loadConnections,
-  insights:loadInsights,policy:loadPolicy,audit:loadAuditPage,security:loadSecurity}[id]||loadHome)();}
+function loadTab(id){({home:loadHome,review:loadReview,memory:renderSearch,chats:loadChats,
+  people:loadPeople,connections:loadConnections,insights:loadInsights,policy:loadPolicy,
+  audit:loadAuditPage,security:loadSecurity}[id]||loadHome)();}
 async function boot(){
   if(!KEY){try{KEY=(await (await fetch(API+"/api/demo-key")).text()).trim();localStorage.setItem("mv_key",KEY);}catch(e){}}
   try{const me=await api("/api/me");

@@ -21,7 +21,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from .schema import (MemoryUnit, MemoryStatus, conflict_key, now_iso)
+from .schema import (MemoryUnit, MemoryStatus, Conversation, conflict_key,
+                     now_iso)
 from .policy import Policy
 from .crypto import Cipher, LocalKeyProvider, HAVE_CRYPTO
 
@@ -86,9 +87,27 @@ class Vault:
         CREATE TABLE IF NOT EXISTS cursors (
             target TEXT PRIMARY KEY, last_seq INTEGER
         );
+
+        -- the archive half: whole conversations, kept verbatim
+        CREATE TABLE IF NOT EXISTS conversations (
+            id TEXT PRIMARY KEY, external_id TEXT, source_system TEXT,
+            title TEXT, messages TEXT, subjects TEXT, namespace TEXT,
+            employee TEXT, employee_email TEXT, department TEXT,
+            started_at TEXT, ingested_at TEXT, expires_at TEXT,
+            retention_days INTEGER, status TEXT, classification TEXT,
+            pii_types TEXT, redacted INTEGER DEFAULT 0,
+            legal_hold INTEGER DEFAULT 0, flags TEXT,
+            fact_ids TEXT, message_count INTEGER, tokens_estimate INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_conv_ext ON conversations(external_id);
+        CREATE INDEX IF NOT EXISTS idx_conv_emp ON conversations(employee);
+        CREATE INDEX IF NOT EXISTS idx_conv_src ON conversations(source_system);
+        CREATE INDEX IF NOT EXISTS idx_conv_status ON conversations(status);
         """)
         try:
             c.execute("""CREATE VIRTUAL TABLE IF NOT EXISTS mem_fts
+                         USING fts5(id UNINDEXED, text)""")
+            c.execute("""CREATE VIRTUAL TABLE IF NOT EXISTS conv_fts
                          USING fts5(id UNINDEXED, text)""")
             self.have_fts = True
         except sqlite3.OperationalError:
@@ -306,8 +325,21 @@ class Vault:
             self._put_row(m)
             self._append_event(actor, "delete", m)
             erased.append(m.id)
+        # erasure has to reach the transcripts too, or the person isn't erased
+        convs_erased = []
+        for c in self.conversations_for_subject(subject):
+            if c.legal_hold:
+                skipped_hold.append(c.id)
+                continue
+            c.status = MemoryStatus.DELETED.value
+            c.messages = [{"role": mm.get("role", "?"), "content": "[deleted]",
+                           "ts": mm.get("ts", now_iso())} for mm in c.messages]
+            self._put_conv_row(c)
+            self._append_event(actor, "conversation_deleted", c)
+            convs_erased.append(c.id)
         receipt = self._issue_receipt("subject_erasure", {
             "subject": subject, "memory_ids": erased,
+            "conversation_ids": convs_erased,
             "skipped_legal_hold": skipped_hold, "actor": actor,
             "cascade": cascade_results or {"vault": "ok"},
         })
@@ -481,6 +513,320 @@ class Vault:
         self._append_event(actor, "reject", m)
         self.db.commit()
         return m
+
+    # ==================================================================
+    #  THE ARCHIVE — whole conversations, under the same governance
+    # ==================================================================
+    def _put_conv_row(self, c: Conversation):
+        d = c.to_dict()
+        d["messages"] = self.cipher.encrypt(json.dumps(d["messages"]))
+        d["subjects"] = json.dumps(d["subjects"])
+        d["pii_types"] = json.dumps(d["pii_types"])
+        d["flags"] = json.dumps(d["flags"])
+        d["fact_ids"] = json.dumps(d["fact_ids"])
+        d["redacted"] = int(d["redacted"])
+        d["legal_hold"] = int(d["legal_hold"])
+        cols = ",".join(d.keys())
+        marks = ",".join("?" * len(d))
+        self.db.execute(
+            f"INSERT OR REPLACE INTO conversations({cols}) VALUES ({marks})",
+            list(d.values()))
+        if self.have_fts:
+            self.db.execute("DELETE FROM conv_fts WHERE id=?", (c.id,))
+            text = " ".join([c.title, c.employee, c.department,
+                             " ".join(c.subjects), c.transcript()])
+            self.db.execute("INSERT INTO conv_fts(id, text) VALUES (?,?)",
+                            (c.id, text))
+
+    def _row_to_conv(self, row) -> Conversation:
+        d = dict(row)
+        d["messages"] = json.loads(self.cipher.decrypt(d["messages"]) or "[]")
+        d["subjects"] = json.loads(d["subjects"] or "[]")
+        d["pii_types"] = json.loads(d["pii_types"] or "[]")
+        d["flags"] = json.loads(d["flags"] or "[]")
+        d["fact_ids"] = json.loads(d["fact_ids"] or "[]")
+        d["redacted"] = bool(d["redacted"])
+        d["legal_hold"] = bool(d["legal_hold"])
+        return Conversation.from_dict(d)
+
+    def add_conversation(self, conv: Conversation,
+                         actor: str = "system") -> Conversation:
+        """Store a whole chat. Same write path as a fact: sensitive data is
+        scanned, the chat is classified, company rules are checked against the
+        transcript, and the whole thing is sealed into the event chain.
+
+        Re-ingesting the same chat updates it in place instead of duplicating,
+        so a second rescue or a daily sync doesn't fork the archive."""
+        existing = (self.conversation_by_external(conv.external_id,
+                                                  conv.source_system)
+                    if conv.external_id else None)
+        action = "conversation_stored"
+        if existing:
+            action = "conversation_updated"
+            conv.id = existing.id                       # keep the stable id
+            conv.ingested_at = existing.ingested_at
+            # never lose governance state that was applied to the old copy
+            conv.fact_ids = sorted(set(existing.fact_ids) | set(conv.fact_ids))
+            conv.legal_hold = existing.legal_hold or conv.legal_hold
+            if existing.status == MemoryStatus.DELETED.value:
+                # a deleted chat stays deleted; re-ingest must not resurrect it
+                return existing
+
+        from .pii import scan_and_maybe_redact
+        found: list = []
+        for m in conv.messages:
+            text, types, red = scan_and_maybe_redact(
+                str(m.get("content", "")), self.redact_pii)
+            m["content"] = text
+            m["pii_types"] = types
+            m["redacted"] = red
+            found.extend(types)
+        conv.pii_types = sorted(set(found))
+        conv.redacted = any(m.get("redacted") for m in conv.messages)
+        if conv.pii_types and "pii" not in conv.flags:
+            conv.flags = list(conv.flags) + ["pii"]
+
+        # sensitivity of the chat = the most sensitive thing said in it
+        from .classification import classify, LEVELS
+        if not conv.classification:
+            probe = MemoryUnit(content=conv.transcript()[:4000],
+                               namespace=conv.namespace,
+                               pii_types=conv.pii_types)
+            conv.classification = classify(probe)
+
+        # Zero-retention deployments keep the shape of the chat, not its words
+        if self.zero_retention:
+            conv.messages = [{"role": m.get("role", "?"),
+                              "content": "[zero-retention: not persisted]",
+                              "ts": m.get("ts", now_iso())}
+                             for m in conv.messages]
+            conv.redacted = True
+
+        # company rules are checked against what was actually said
+        if self.policy_guard is not None:
+            probe = MemoryUnit(content=conv.transcript()[:4000],
+                               namespace=conv.namespace)
+            for v in self.policy_guard.evaluate(probe):
+                tag = f"policy:{v.rule_id}"
+                if tag not in conv.flags:
+                    conv.flags = list(conv.flags) + [tag]
+
+        conv.message_count = len(conv.messages)
+        self._put_conv_row(conv)
+        self._append_event(actor, action, conv)
+        self.db.commit()
+        self._fire_conv(action, conv)
+        return conv
+
+    def _fire_conv(self, action: str, c: Conversation):
+        if self.event_hook is None:
+            return
+        try:
+            self.event_hook(action, {"id": c.id, "subject": ",".join(c.subjects),
+                                     "attribute": "conversation",
+                                     "value": c.source_system,
+                                     "content": c.title or c.transcript()[:200]})
+        except Exception:
+            pass
+
+    def get_conversation(self, conv_id: str) -> Optional[Conversation]:
+        row = self.db.execute("SELECT * FROM conversations WHERE id=?",
+                              (conv_id,)).fetchone()
+        return self._row_to_conv(row) if row else None
+
+    def conversation_by_external(self, external_id: str,
+                                 source_system: Optional[str] = None):
+        """Find a chat by the vendor's own id — how a fact points home."""
+        sql = "SELECT * FROM conversations WHERE external_id=?"
+        args = [external_id]
+        if source_system:
+            sql += " AND source_system=?"
+            args.append(source_system)
+        row = self.db.execute(sql, args).fetchone()
+        return self._row_to_conv(row) if row else None
+
+    def link_fact(self, conv_id: str, fact_id: str):
+        """Record that a fact was extracted from this chat (both directions:
+        the fact already carries conversation_id in its provenance)."""
+        c = self.get_conversation(conv_id)
+        if not c or fact_id in c.fact_ids:
+            return
+        c.fact_ids = list(c.fact_ids) + [fact_id]
+        self._put_conv_row(c)
+        self.db.commit()
+
+    def facts_from_conversation(self, conv_id: str) -> list:
+        """Every fact that came out of one chat."""
+        c = self.get_conversation(conv_id)
+        if not c:
+            return []
+        out = [self.get(fid) for fid in c.fact_ids]
+        out = [m for m in out if m]
+        if out:
+            return out
+        # fall back to provenance for chats ingested before linking
+        keys = [k for k in (c.external_id, c.id) if k]
+        found = []
+        for m in self.all_memories():
+            if (m.provenance or {}).get("conversation_id") in keys:
+                found.append(m)
+        return found
+
+    def conversation_for_memory(self, memory_id: str) -> Optional[Conversation]:
+        """Open the chat a fact came from — the other half of the trace."""
+        m = self.get(memory_id)
+        if not m:
+            return None
+        ext = (m.provenance or {}).get("conversation_id", "")
+        if not ext:
+            return None
+        return (self.conversation_by_external(
+            ext, (m.provenance or {}).get("source_system"))
+            or self.conversation_by_external(ext) or self.get_conversation(ext))
+
+    def search_conversations(self, query: str = "", agent: str = "admin",
+                             employee: Optional[str] = None,
+                             source_system: Optional[str] = None,
+                             status: str = "active", limit: int = 50,
+                             log: bool = True) -> list:
+        """Search whole transcripts, behind the same ACL walls as facts."""
+        allowed = self.policy.allowed_namespaces(agent)
+        ids = None
+        if query and self.have_fts:
+            safe = " ".join(t for t in query.replace('"', " ").split())
+            try:
+                rows = self.db.execute(
+                    "SELECT id FROM conv_fts WHERE conv_fts MATCH ? LIMIT 500",
+                    (safe,)).fetchall()
+                ids = [r["id"] for r in rows]
+            except sqlite3.OperationalError:
+                ids = None
+        sql = "SELECT * FROM conversations WHERE 1=1"
+        args: list = []
+        if status and status != "all":
+            sql += " AND status=?"; args.append(status)
+        if employee:
+            sql += " AND employee=?"; args.append(employee)
+        if source_system:
+            sql += " AND source_system=?"; args.append(source_system)
+        if allowed is not None:
+            sql += f" AND namespace IN ({','.join('?'*len(allowed))})"
+            args.extend(allowed)
+        if ids is not None:
+            if not ids:
+                return []
+            sql += f" AND id IN ({','.join('?'*len(ids))})"
+            args.extend(ids)
+        sql += " ORDER BY started_at DESC LIMIT ?"
+        args.append(limit)
+        rows = self.db.execute(sql, args).fetchall()
+        out = [self._row_to_conv(r) for r in rows]
+        if log and out:
+            self._log_retrieval(agent, query, [c.id for c in out], "conversation")
+        return out
+
+    def delete_conversation(self, conv_id: str, actor: str = "system"):
+        """Erase a whole chat, with a receipt. Legal hold wins."""
+        c = self.get_conversation(conv_id)
+        if not c:
+            return None
+        if c.legal_hold:
+            return {"blocked": True, "reason": "conversation is under legal hold",
+                    "conversation_id": conv_id}
+        c.status = MemoryStatus.DELETED.value
+        c.messages = [{"role": m.get("role", "?"), "content": "[deleted]",
+                       "ts": m.get("ts", now_iso())} for m in c.messages]
+        self._put_conv_row(c)
+        seq = self._append_event(actor, "conversation_deleted", c)
+        receipt = self._issue_receipt("conversation_deletion", {
+            "conversation_id": conv_id, "actor": actor, "event_seq": seq,
+            "messages_erased": c.message_count})
+        self.db.commit()
+        return receipt
+
+    def conversations_for_subject(self, subject: str) -> list:
+        rows = self.db.execute(
+            "SELECT * FROM conversations WHERE status!=?",
+            (MemoryStatus.DELETED.value,)).fetchall()
+        return [c for c in (self._row_to_conv(r) for r in rows)
+                if subject in c.subjects]
+
+    def expire_conversations(self, actor: str = "retention") -> int:
+        """Retention: retire transcripts past their keep-until date."""
+        now = now_iso()
+        rows = self.db.execute(
+            "SELECT * FROM conversations WHERE status=? AND expires_at IS NOT NULL"
+            " AND expires_at < ?", (MemoryStatus.ACTIVE.value, now)).fetchall()
+        n = 0
+        for r in rows:
+            c = self._row_to_conv(r)
+            if c.legal_hold:
+                continue                      # litigation freeze outranks retention
+            c.status = MemoryStatus.EXPIRED.value
+            self._put_conv_row(c)
+            self._append_event(actor, "conversation_expired", c)
+            n += 1
+        self.db.commit()
+        return n
+
+    def conversation_counts(self) -> dict:
+        rows = self.db.execute(
+            "SELECT status, COUNT(*) n FROM conversations GROUP BY status")
+        return {r["status"]: r["n"] for r in rows}
+
+    # ---- who did what: per-employee accountability ----------------------
+    def employee_activity(self, employee: Optional[str] = None) -> list:
+        """What each person taught the AIs, and from which tools. Built from
+        stored facts and conversations rather than a separate log, so it can't
+        drift out of sync with reality."""
+        people: dict = {}
+
+        def bucket(name, email, dept):
+            key = name or email or "unattributed"
+            return people.setdefault(key, {
+                "employee": key, "employee_email": email, "department": dept,
+                "facts": 0, "conversations": 0, "messages": 0,
+                "flagged": 0, "pii": 0, "held_for_review": 0,
+                "sources": {}, "last_active": ""})
+
+        for m in self.all_memories():
+            if m.status == MemoryStatus.DELETED.value:
+                continue
+            p = (m.provenance or {})
+            if employee and p.get("employee") != employee:
+                continue
+            b = bucket(p.get("employee", ""), p.get("employee_email", ""),
+                       p.get("department", ""))
+            b["facts"] += 1
+            src = p.get("source_system", "unknown")
+            b["sources"][src] = b["sources"].get(src, 0) + 1
+            if any(str(f).startswith("policy") for f in (m.flags or [])):
+                b["flagged"] += 1
+            if m.pii_types:
+                b["pii"] += 1
+            if m.status == MemoryStatus.QUARANTINED.value:
+                b["held_for_review"] += 1
+            if m.occurred_at > b["last_active"]:
+                b["last_active"] = m.occurred_at
+
+        for r in self.db.execute("SELECT * FROM conversations WHERE status!=?",
+                                 (MemoryStatus.DELETED.value,)):
+            c = self._row_to_conv(r)
+            if employee and c.employee != employee:
+                continue
+            b = bucket(c.employee, c.employee_email, c.department)
+            b["conversations"] += 1
+            b["messages"] += c.message_count
+            b["sources"][c.source_system] = b["sources"].get(c.source_system, 0) + 1
+            if any(str(f).startswith("policy") for f in (c.flags or [])):
+                b["flagged"] += 1
+            if c.pii_types:
+                b["pii"] += 1
+            if c.started_at > b["last_active"]:
+                b["last_active"] = c.started_at
+
+        return sorted(people.values(),
+                      key=lambda p: (p["facts"] + p["conversations"]), reverse=True)
 
     # ----------------------------------------------------------- utilities
     def all_memories(self, status: Optional[str] = None) -> list:

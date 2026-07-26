@@ -148,6 +148,87 @@ class MemoryUnit:
         return cls.from_dict(json.loads(s))
 
 
+@dataclass
+class Message:
+    """One turn in a conversation. Kept verbatim — this is the raw record."""
+    role: str                        # "user" | "assistant" | "system" | "tool"
+    content: str
+    ts: str = field(default_factory=now_iso)
+    author: str = ""                 # the human behind a "user" turn, if known
+    redacted: bool = False
+    pii_types: list = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class Conversation:
+    """A full chat, stored whole — the archive half of the memory.
+
+    Facts answer "what does the company know". Conversations answer "show me
+    exactly where that came from, in full". Both live under the same
+    governance: sealed in the event chain, sensitivity-classified, subject to
+    legal hold, erasure and retention.
+    """
+    id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    external_id: str = ""            # the vendor's own conversation id
+    source_system: str = "manual"    # which AI this chat happened in
+    title: str = ""
+    messages: list = field(default_factory=list)   # list[Message-as-dict]
+    subjects: list = field(default_factory=list)   # who/what it was about
+    namespace: str = "general"       # same ACL wall as facts
+    # who was in the room
+    employee: str = ""
+    employee_email: str = ""
+    department: str = ""
+    # governance
+    started_at: str = field(default_factory=now_iso)
+    ingested_at: str = field(default_factory=now_iso)
+    expires_at: Optional[str] = None
+    retention_days: Optional[int] = None   # None = keep until policy says otherwise
+    status: str = MemoryStatus.ACTIVE.value
+    classification: str = ""
+    pii_types: list = field(default_factory=list)
+    redacted: bool = False
+    legal_hold: bool = False
+    flags: list = field(default_factory=list)
+    fact_ids: list = field(default_factory=list)   # facts extracted from this chat
+    message_count: int = 0
+    tokens_estimate: int = 0
+
+    def __post_init__(self):
+        self.message_count = len(self.messages)
+        if not self.tokens_estimate:
+            self.tokens_estimate = sum(
+                max(1, len(str(m.get("content", ""))) // 4) for m in self.messages)
+        if self.expires_at is None and self.retention_days:
+            base = datetime.fromisoformat(self.started_at)
+            if base.tzinfo is None:
+                base = base.replace(tzinfo=timezone.utc)
+            self.expires_at = (base + timedelta(days=self.retention_days)).isoformat()
+
+    def transcript(self) -> str:
+        """Flatten to plain text — used for search indexing and excerpts."""
+        return "\n".join(f"{m.get('role','?')}: {m.get('content','')}"
+                         for m in self.messages)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=False)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Conversation":
+        known = {f.name for f in cls.__dataclass_fields__.values()}  # type: ignore
+        return cls(**{k: v for k, v in d.items() if k in known})
+
+    @classmethod
+    def from_json(cls, s: str) -> "Conversation":
+        return cls.from_dict(json.loads(s))
+
+
 def conflict_key(m: MemoryUnit) -> Optional[tuple]:
     """Two memories 'fight' when they claim different values for the same
     subject+attribute — compared on CANONICAL forms so 'Acme' and

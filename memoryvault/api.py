@@ -593,6 +593,138 @@ async def a2a_invoke(skill: str, params: dict, key=Depends(require("read"))):
                                                     agent=key.role)
 
 
+# ======================================================================
+#  THE ARCHIVE — every chat, and the scoped context each AI receives
+# ======================================================================
+from .schema import Conversation, Message  # noqa: E402
+from .context import ContextAssembler  # noqa: E402
+
+
+class ConversationIn(BaseModel):
+    external_id: str = ""
+    source_system: str = "manual"
+    title: str = ""
+    messages: list = []                 # [{role, content, ts?, author?}]
+    subjects: list = []
+    namespace: str = "general"
+    employee: str = ""
+    employee_email: str = ""
+    department: str = ""
+    started_at: str = ""
+    retention_days: Optional[int] = None
+
+
+@app.post("/api/conversations")
+async def add_conversation(body: ConversationIn, key=Depends(require("write"))):
+    """Store a whole chat. Same governance as a fact."""
+    v = cp.vault_for(key.org)
+    msgs = [Message(role=m.get("role", "user"), content=str(m.get("content", "")),
+                    ts=m.get("ts") or now_iso_(), author=m.get("author", "")).to_dict()
+            for m in body.messages]
+    conv = Conversation(
+        external_id=body.external_id, source_system=body.source_system,
+        title=body.title, messages=msgs, subjects=body.subjects,
+        namespace=body.namespace, employee=body.employee,
+        employee_email=body.employee_email, department=body.department,
+        started_at=body.started_at or now_iso_(),
+        retention_days=body.retention_days)
+    saved = v.add_conversation(conv, actor=f"api:{key.name or key.role}")
+    meter.record(key.org, "conversation_stored", len(msgs))
+    return {"id": saved.id, "messages": saved.message_count,
+            "classification": saved.classification, "flags": saved.flags,
+            "pii_types": saved.pii_types}
+
+
+def now_iso_() -> str:
+    from .schema import now_iso
+    return now_iso()
+
+
+@app.get("/api/conversations")
+async def list_conversations(q: str = "", employee: str = None,
+                             source_system: str = None, status: str = "active",
+                             agent: str = "admin", limit: int = 50,
+                             key=Depends(require("read"))):
+    """Search whole transcripts, behind the same walls as facts."""
+    v = cp.vault_for(key.org)
+    convs = v.search_conversations(query=q, agent=agent, employee=employee,
+                                   source_system=source_system, status=status,
+                                   limit=limit)
+    return {"count": len(convs), "conversations": [
+        {"id": c.id, "external_id": c.external_id, "source_system": c.source_system,
+         "title": c.title, "employee": c.employee, "department": c.department,
+         "subjects": c.subjects, "namespace": c.namespace,
+         "started_at": c.started_at, "message_count": c.message_count,
+         "classification": c.classification, "flags": c.flags,
+         "pii_types": c.pii_types, "legal_hold": c.legal_hold,
+         "fact_ids": c.fact_ids, "status": c.status} for c in convs]}
+
+
+@app.get("/api/conversations/{conv_id}")
+async def get_conversation(conv_id: str, key=Depends(require("read"))):
+    """The full transcript, plus the facts drawn out of it."""
+    v = cp.vault_for(key.org)
+    c = v.get_conversation(conv_id)
+    if not c:
+        raise HTTPException(404, "conversation not found")
+    if not cp.can(key.role, "admin") and not v.policy.can_read(key.role, c.namespace):
+        raise HTTPException(403, "outside your namespace walls")
+    d = c.to_dict()
+    d["facts"] = [m.to_dict() for m in v.facts_from_conversation(conv_id)]
+    return d
+
+
+@app.delete("/api/conversations/{conv_id}")
+async def delete_conversation(conv_id: str, key=Depends(require("delete"))):
+    v = cp.vault_for(key.org)
+    r = v.delete_conversation(conv_id, actor=f"api:{key.role}")
+    if r is None:
+        raise HTTPException(404, "conversation not found")
+    cp.audit(key.org, key.name or key.role, "delete_conversation", {"id": conv_id})
+    return r
+
+
+@app.get("/api/memories/{mid}/conversation")
+async def conversation_for_memory(mid: str, key=Depends(require("read"))):
+    """Open the chat a fact came from — the other half of the trace."""
+    c = cp.vault_for(key.org).conversation_for_memory(mid)
+    if not c:
+        raise HTTPException(404, "no stored conversation for this memory")
+    return c.to_dict()
+
+
+@app.get("/api/conversation-counts")
+async def conversation_counts(key=Depends(require("read"))):
+    return cp.vault_for(key.org).conversation_counts()
+
+
+# ---- the scoped slice one AI is allowed to receive -------------------
+@app.get("/api/context")
+async def context(agent: str = "default", q: str = "", subject: str = "",
+                  max_facts: int = 20, max_conversations: int = 3,
+                  token_budget: int = 4000, clearance: str = "confidential",
+                  include_transcripts: bool = True,
+                  key=Depends(require("read"))):
+    """One memory, one agent's slice of it. This is what an AI actually gets."""
+    return ContextAssembler(cp.vault_for(key.org)).assemble(
+        agent=agent, query=q, subject=subject, max_facts=max_facts,
+        max_conversations=max_conversations, token_budget=token_budget,
+        clearance=clearance, include_transcripts=include_transcripts)
+
+
+@app.get("/api/context/blocked")
+async def context_blocked(agent: str = "default", key=Depends(require("read"))):
+    """What this agent is walled off from — the reviewer's view."""
+    return ContextAssembler(cp.vault_for(key.org)).what_an_agent_cannot_see(agent)
+
+
+# ---- who did what ----------------------------------------------------
+@app.get("/api/employees")
+async def employees(employee: str = None, key=Depends(require("read"))):
+    """Per-person accountability: what each employee taught the AIs."""
+    return {"employees": cp.vault_for(key.org).employee_activity(employee)}
+
+
 # ---- setup / status (what's activated by your keys) ------------------
 @app.get("/api/setup")
 async def setup_status(key=Depends(require("admin"))):

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "sf-8841",
+    "title": "Acme — call scheduling preference",
+    "subjects": ["customer:acme"],
+    "namespace": "sales",
+    "employee": "Sarah Chen",
+    "employee_email": "sarah.chen@acme.com",
+    "department": "sales",
+    "started_at": "-24d",
+    "messages": [
+      {"role": "user", "content": "Acme keeps missing our morning calls. Any pattern?"},
+      {"role": "assistant", "content": "Three of the last four were rescheduled. Two were moved to after 5pm ET."},
+      {"role": "user", "content": "Right, Jordan said mornings are standups. Let's default to evening calls after 5pm ET for them."},
+      {"role": "assistant", "content": "Recorded: Acme Corp prefers evening calls after 5pm ET."}
+    ]
+  },
+  {
+    "id": "sf-8843",
+    "title": "Acme — contacts and roles",
+    "subjects": ["customer:acme"],
+    "namespace": "sales",
+    "employee": "Sarah Chen",
+    "employee_email": "sarah.chen@acme.com",
+    "department": "sales",
+    "started_at": "-22d",
+    "messages": [
+      {"role": "user", "content": "Who is actually signing on the Acme side now?"},
+      {"role": "assistant", "content": "The account lists two contacts. Which one signed the last order form?"},
+      {"role": "user", "content": "Jordan Rivera, VP Ops. Treat Jordan as the primary from here."},
+      {"role": "assistant", "content": "Recorded: primary contact at Acme is Jordan Rivera, VP Ops."}
+    ]
+  },
+  {
+    "id": "sf-9001",
+    "title": "Globex — competitive pressure",
+    "subjects": ["customer:globex"],
+    "namespace": "sales",
+    "employee": "Marcus Webb",
+    "employee_email": "marcus.webb@acme.com",
+    "department": "sales",
+    "started_at": "-5d",
+    "messages": [
+      {"role": "user", "content": "Globex asked for a discount and mentioned they're evaluating alternatives."},
+      {"role": "assistant", "content": "Do you want that logged as a renewal risk on the account?"},
+      {"role": "user", "content": "Yes. Renewal is at risk, competitor in play."},
+      {"role": "assistant", "content": "Recorded: Globex renewal is at risk; considering a competitor."}
+    ]
+  }
+]

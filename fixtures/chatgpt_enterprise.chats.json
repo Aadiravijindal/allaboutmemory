@@ -1,0 +1,37 @@
+[
+  {
+    "id": "gpt-2201",
+    "title": "Acme renewal — plan change",
+    "subjects": ["customer:acme"],
+    "namespace": "sales",
+    "employee": "Sarah Chen",
+    "employee_email": "sarah.chen@acme.com",
+    "department": "sales",
+    "started_at": "-20d",
+    "messages": [
+      {"role": "user", "content": "Just got off the call with Acme. They're moving up from Pro."},
+      {"role": "assistant", "content": "Good news. Which plan are they moving to, and does the contract date change?"},
+      {"role": "user", "content": "Enterprise, effective this billing cycle. Same renewal date."},
+      {"role": "assistant", "content": "Noted: Acme Corp is on the Enterprise plan as of this cycle, renewal date unchanged."},
+      {"role": "user", "content": "Also they asked for a summary of what's included at that tier, can you draft it?"},
+      {"role": "assistant", "content": "Here's a draft covering seats, support SLA, and the audit features included at Enterprise."}
+    ]
+  },
+  {
+    "id": "gpt-2214",
+    "title": "Renewal risk — Globex",
+    "subjects": ["customer:globex"],
+    "namespace": "sales",
+    "employee": "Marcus Webb",
+    "employee_email": "marcus.webb@acme.com",
+    "department": "sales",
+    "started_at": "-6d",
+    "messages": [
+      {"role": "user", "content": "Globex went quiet after the pricing conversation. Worried about renewal."},
+      {"role": "assistant", "content": "What was the last thing they said about pricing?"},
+      {"role": "user", "content": "They mentioned they're looking at a competitor and our increase felt steep."},
+      {"role": "assistant", "content": "Recorded that Globex renewal is at risk and a competitor is in play. Want a retention plan?"},
+      {"role": "user", "content": "Yes, and flag it to the account team."}
+    ]
+  }
+]

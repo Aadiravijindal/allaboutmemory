@@ -32,10 +32,12 @@ class RescueTool:
         self.transformer = transformer or get_transformer()
         self.locker = locker or get_locker()
 
-    def run(self, systems: list, clean: bool = True) -> dict:
+    def run(self, systems: list, clean: bool = True,
+            transcripts: bool = True) -> dict:
         started = datetime.now(timezone.utc).isoformat()
         per_system = []
         recovered_total = 0
+        conversations_total = 0
         evidence = []
 
         for system in systems:
@@ -47,7 +49,15 @@ class RescueTool:
                 ev = self.locker.put(self.org, system, raw_dump)
                 evidence.append({"system": system, "uri": ev.get("uri"),
                                  "sha256": ev["sha256"], "bytes": ev["bytes"]})
-                # 2) LLM-normalize each record into clean canonical memory
+                # 2) whole chats first, so facts can point back at them
+                convs = 0
+                if transcripts:
+                    for conv in conn.extract_conversations():
+                        self.vault.add_conversation(
+                            conv, actor=f"rescue:{system}")
+                        convs += 1
+                    conversations_total += convs
+                # 3) LLM-normalize each record into clean canonical memory
                 loaded, quarantined = 0, 0
                 for m in mems:
                     norm = self.transformer.transform(m.to_dict(), system)
@@ -55,9 +65,16 @@ class RescueTool:
                     if saved.status == "quarantined":
                         quarantined += 1
                     loaded += 1
+                    # 4) tie the fact to the chat it came out of
+                    ext = (saved.provenance or {}).get("conversation_id", "")
+                    if ext:
+                        chat = self.vault.conversation_by_external(ext, system)
+                        if chat:
+                            self.vault.link_fact(chat.id, saved.id)
                 recovered_total += loaded
                 per_system.append({
                     "system": system, "recovered": loaded,
+                    "conversations_recovered": convs,
                     "quarantined_for_review": quarantined,
                     "status": "ok",
                 })
@@ -75,6 +92,7 @@ class RescueTool:
             "started_at": started, "finished_at": finished,
             "systems": per_system,
             "total_recovered": recovered_total,
+            "total_conversations_recovered": conversations_total,
             "cleaning": cleaning,
             "evidence_locker": evidence,
             "transformer": type(self.transformer).__name__,

@@ -158,4 +158,6 @@ class Cleaner:
             "expire": self.expire_stale(),
             "contradictions": self.resolve_contradictions(),
             "bias": self.flag_bias(),
+            # transcripts age out on their own retention clock
+            "transcripts_expired": self.vault.expire_conversations(),
         }

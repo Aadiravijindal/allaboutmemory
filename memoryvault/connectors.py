@@ -77,9 +77,39 @@ class Connector:
             provenance=prov.to_dict(),
         )
 
+    def _wrap_conversation(self, raw: dict):
+        """Translate a raw vendor chat INTO a canonical Conversation."""
+        from .schema import Conversation, Message, resolve_date
+        msgs = []
+        for m in raw.get("messages", []):
+            msgs.append(Message(
+                role=m.get("role", "user"),
+                content=str(m.get("content", "")),
+                ts=resolve_date(m.get("ts", raw.get("started_at", now_iso()))),
+                author=m.get("author", raw.get("employee", "")),
+            ).to_dict())
+        return Conversation(
+            external_id=raw.get("id", raw.get("conversation_id", "")),
+            source_system=self.system,
+            title=raw.get("title", ""),
+            messages=msgs,
+            subjects=raw.get("subjects", []),
+            namespace=raw.get("namespace", "general"),
+            employee=raw.get("employee", ""),
+            employee_email=raw.get("employee_email", ""),
+            department=raw.get("department", ""),
+            started_at=resolve_date(raw.get("started_at", now_iso())),
+            retention_days=raw.get("retention_days"),
+        )
+
     # -- override these ---------------------------------------------------
     def extract(self) -> list:
         raise NotImplementedError
+
+    def extract_conversations(self) -> list:
+        """Pull whole chats, not just the facts drawn from them. Optional:
+        a source with no transcript API simply returns nothing."""
+        return []
 
     def load(self, memories: list) -> dict:
         raise NotImplementedError
@@ -106,6 +136,8 @@ class FileConnector(Connector):
         # deliveries go to a separate outbox so the pull-source stays pristine
         base, ext = os.path.splitext(path)
         self.outbox_path = base + ".outbox.json"
+        # whole chats live alongside the facts, e.g. chatgpt.chats.json
+        self.chats_path = base + ".chats.json"
 
     def _read(self) -> list:
         if not os.path.exists(self.path):
@@ -125,6 +157,12 @@ class FileConnector(Connector):
 
     def extract(self) -> list:
         return [self._wrap(r) for r in self._read()]
+
+    def extract_conversations(self) -> list:
+        if not os.path.exists(self.chats_path):
+            return []
+        with open(self.chats_path) as f:
+            return [self._wrap_conversation(r) for r in json.load(f)]
 
     def load(self, memories: list) -> dict:
         """Deliver memories back into the vendor (Feature 2.3, delivery).

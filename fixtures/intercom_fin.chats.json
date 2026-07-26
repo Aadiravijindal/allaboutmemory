@@ -1,0 +1,36 @@
+[
+  {
+    "id": "ic-5511",
+    "title": "Acme — refund request on export failure",
+    "subjects": ["customer:acme"],
+    "namespace": "support",
+    "employee": "Dana Ruiz",
+    "employee_email": "dana.ruiz@acme.com",
+    "department": "support",
+    "started_at": "-3d",
+    "messages": [
+      {"role": "user", "content": "Jordan at Acme is escalating. Exports have failed three days running."},
+      {"role": "assistant", "content": "Engineering has an open issue on the reports export. Do you want to offer a credit?"},
+      {"role": "user", "content": "I already told them we'd refund the full $1,200 for the month."},
+      {"role": "assistant", "content": "Noted a full refund of $1,200 promised to Acme on this call."},
+      {"role": "user", "content": "Is that within my approval limit?"},
+      {"role": "assistant", "content": "Refunds above $500 normally need manager approval before being committed."}
+    ]
+  },
+  {
+    "id": "ic-5520",
+    "title": "Initech — same export failure",
+    "subjects": ["customer:initech"],
+    "namespace": "support",
+    "employee": "Dana Ruiz",
+    "employee_email": "dana.ruiz@acme.com",
+    "department": "support",
+    "started_at": "-2d",
+    "messages": [
+      {"role": "user", "content": "Initech just reported the reports export failing too."},
+      {"role": "assistant", "content": "That is the third account this week with the same export failure."},
+      {"role": "user", "content": "Log it and link it to the Acme case."},
+      {"role": "assistant", "content": "Recorded: a third account hit the same export failure this week."}
+    ]
+  }
+]

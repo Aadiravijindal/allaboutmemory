@@ -62,15 +62,24 @@ class KillSwitch:
 def apply_legal_hold(vault, subject: str, actor: str, on: bool = True) -> dict:
     """Freeze (or release) every memory about a subject so it cannot be
     deleted or expired during litigation. Logged for the audit trail."""
+    action = "legal_hold_on" if on else "legal_hold_off"
     held = 0
     for m in vault.all_memories():
         if m.subject == subject and m.status != MemoryStatus.DELETED.value:
             m.legal_hold = on
             vault._put_row(m)
-            vault._append_event(actor, "legal_hold_on" if on else "legal_hold_off", m)
+            vault._append_event(actor, action, m)
             held += 1
+    # a hold that misses the transcripts isn't a hold — freeze those too
+    convs = 0
+    for c in vault.conversations_for_subject(subject):
+        c.legal_hold = on
+        vault._put_conv_row(c)
+        vault._append_event(actor, action, c)
+        convs += 1
     vault.db.commit()
-    return {"subject": subject, "held": held, "on": on}
+    return {"subject": subject, "held": held, "conversations_held": convs,
+            "on": on}
 
 
 # --------------------------------------------------------------- SIEM export

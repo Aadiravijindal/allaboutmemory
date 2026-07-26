@@ -132,3 +132,64 @@ def test_consent_withdraw_purges():
     # withdrawing consent for a subject erases their memory
     r = client.post("/api/consent/customer:globex?granted=false", headers=H)
     assert r.status_code == 200
+
+
+# ---- the archive: conversations, scoped context, employee activity -------
+def test_conversation_endpoints():
+    client.post("/api/rescue", headers=H, json={
+        "systems": ["salesforce_agentforce", "chatgpt_enterprise",
+                    "intercom_fin"], "clean": False})
+    lst = client.get("/api/conversations?limit=20", headers=H).json()
+    assert lst["count"] >= 4
+    conv = lst["conversations"][0]
+    assert conv["message_count"] > 0 and conv["employee"]
+
+    full = client.get(f"/api/conversations/{conv['id']}", headers=H).json()
+    assert len(full["messages"]) == conv["message_count"]
+    assert "facts" in full
+
+    counts = client.get("/api/conversation-counts", headers=H).json()
+    assert counts.get("active", 0) >= 4
+
+
+def test_conversation_is_idempotent_over_the_api():
+    before = client.get("/api/conversation-counts", headers=H).json().get("active", 0)
+    client.post("/api/rescue", headers=H, json={
+        "systems": ["salesforce_agentforce"], "clean": False})
+    after = client.get("/api/conversation-counts", headers=H).json().get("active", 0)
+    assert after == before        # re-rescue must not fork the archive
+
+
+def test_post_conversation_applies_governance():
+    r = client.post("/api/conversations", headers=H, json={
+        "external_id": "api-test-1", "source_system": "claude",
+        "title": "card in chat", "namespace": "sales",
+        "employee": "Test User", "subjects": ["customer:acme"],
+        "messages": [{"role": "user", "content": "card 4111 1111 1111 1111"}]}).json()
+    assert r["classification"] == "restricted"
+    assert "pii" in r["flags"] and "credit_card" in r["pii_types"]
+
+
+def test_fact_links_to_its_conversation_over_the_api():
+    mid = client.get("/api/memories?q=evening&limit=1&agent=admin",
+                     headers=H).json()["memories"][0]["id"]
+    conv = client.get(f"/api/memories/{mid}/conversation", headers=H).json()
+    assert conv["external_id"] == "sf-8841"
+    assert len(conv["messages"]) >= 3
+
+
+def test_context_endpoint_scopes_per_agent():
+    sales = client.get("/api/context?agent=sales_agent&q=acme", headers=H).json()
+    hr = client.get("/api/context?agent=hr_agent&q=acme", headers=H).json()
+    assert sales["facts"] and sales["walls"] == ["sales", "general"]
+    assert hr["facts"] == []
+    blocked = client.get("/api/context/blocked?agent=hr_agent", headers=H).json()
+    assert blocked["blocked_facts"] > 0
+
+
+def test_employees_endpoint():
+    people = client.get("/api/employees", headers=H).json()["employees"]
+    names = {p["employee"] for p in people}
+    assert "Sarah Chen" in names
+    one = client.get("/api/employees?employee=Sarah Chen", headers=H).json()["employees"]
+    assert len(one) == 1 and one[0]["conversations"] > 0

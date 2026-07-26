@@ -417,6 +417,7 @@ footer{border-top:1px solid var(--line2);padding:42px 0;color:var(--faint);font-
 <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15l-5-5M19 12l-5 5"/></symbol>
 <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1114 5.3"/><path d="M4 6.5V12h5.5"/></symbol>
 <symbol id="i-badge" viewBox="0 0 24 24"><circle cx="12" cy="9.5" r="5.5"/><path d="M8.4 14L7 21l5-2.4L17 21l-1.4-7"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><path d="M4 8.5h16V19a2 2 0 01-2 2H6a2 2 0 01-2-2V8.5z"/><rect x="2.8" y="4" width="18.4" height="4.5" rx="1.4"/><path d="M10 13h4"/></symbol>
 <symbol id="i-money" viewBox="0 0 24 24"><path d="M12 3.5v17"/><path d="M16 7.5c0-1.7-1.8-2.6-4-2.6s-4 .9-4 2.6c0 3.9 8 1.8 8 5.6 0 1.9-1.8 2.9-4 2.9s-4-1-4-2.9"/></symbol>
 </defs></svg>
 
@@ -444,9 +445,9 @@ footer{border-top:1px solid var(--line2);padding:42px 0;color:var(--faint);font-
     <div>
       <span class="eyebrow"><span class="dot"></span>Six agents in production. Nobody approved what they learned.</span>
       <h1>Approve what your AIs learn.<br><em>Prove what they knew.</em></h1>
-      <p class="sub">MemoryVault sits between your AI tools and everything they remember. A human clears every fact
-        before it lands. Every change is sealed in a record nobody can quietly edit. And the whole memory leaves
-        with you the day you change vendors.</p>
+      <p class="sub">MemoryVault sits between your AI tools and everything they remember. Every conversation is
+        kept whole and every fact drawn from it is cleared by a person before any agent believes it. One shared
+        memory, and each AI receives only the slice its role allows.</p>
       <div class="ctas">
         <a class="btn primary" href="#access">Request access</a>
         <a class="btn" href="#flow">See how it works</a>
@@ -539,7 +540,7 @@ footer{border-top:1px solid var(--line2);padding:42px 0;color:var(--faint);font-
 <section id="product" style="padding-top:36px">
   <div class="wrap">
     <div class="reveal"><span class="kicker">The console</span>
-    <h2 class="h2">Eight rooms. Each one answers<br>a question somebody is paid to ask.</h2>
+    <h2 class="h2">Ten rooms. Each one answers<br>a question somebody is paid to ask.</h2>
     <p class="lead">Not a dashboard of charts. Every screen is built around the decision one person in the building
       has to make that morning.</p></div>
 
@@ -574,6 +575,29 @@ footer{border-top:1px solid var(--line2);padding:42px 0;color:var(--faint);font-
           <div class="mrow"><span class="grow">search: acme</span><span class="chip n">6 facts</span></div>
           <div class="mrow"><span class="grow">Acme prefers evening calls after 5pm ET</span><span class="chip g">cleared</span></div>
           <div class="mrow"><span class="grow">taught by Sarah Chen · read by 11 agents</span><span class="chip a">trace</span></div>
+        </div>
+      </div>
+
+      <div class="card tabcard reveal">
+        <div class="th"><span class="iw"><svg class="ic lg"><use href="#i-archive"/></svg></span><h3>Chats</h3><span class="role">investigations</span></div>
+        <p>Every conversation kept whole, not summarised away. Open one and read it exactly as it happened, with
+          the facts that came out of it listed underneath. <b>The fact and its source sit one click apart.</b></p>
+        <div class="mock">
+          <div class="mrow"><span class="grow">Acme renewal — plan change</span><span class="chip n">6 messages</span><span class="chip a">1 fact</span></div>
+          <div class="mrow"><span class="grow">Acme — refund request</span><span class="chip r">broke a rule</span></div>
+          <div class="mrow"><span class="grow">search inside every chat</span><span class="chip g">full text</span></div>
+        </div>
+      </div>
+
+      <div class="card tabcard reveal">
+        <div class="th"><span class="iw"><svg class="ic lg"><use href="#i-user"/></svg></span><h3>People</h3><span class="role">HR &amp; security</span></div>
+        <p>What each person taught the AIs, from which tools, and how much of it got held or flagged.
+          <b>When something goes wrong you know whose conversation it started in</b> — read from the record, so it
+          can't drift out of sync.</p>
+        <div class="mock">
+          <div class="mrow"><span class="grow">Sarah Chen · sales</span><span class="chip n">5 facts · 3 chats</span><span class="chip g">clean</span></div>
+          <div class="mrow"><span class="grow">Dana Ruiz · support</span><span class="chip n">4 facts · 2 chats</span><span class="chip r">2 flagged</span></div>
+          <div class="mrow"><span class="grow">unattributed writes</span><span class="chip a">investigate</span></div>
         </div>
       </div>
 
@@ -676,6 +700,7 @@ footer{border-top:1px solid var(--line2);padding:42px 0;color:var(--faint);font-
           <li>company rule check</li>
           <li>human checkpoint</li>
           <li>conflict resolution</li>
+          <li>store the chat, whole</li>
           <li>seal into the record</li>
         </ul>
       </div>
@@ -730,6 +755,7 @@ footer{border-top:1px solid var(--line2);padding:42px 0;color:var(--faint);font-
         <ul>
           <li><svg class="ic"><use href="#i-check"/></svg>Signed off by security, legal and finance</li>
           <li><svg class="ic"><use href="#i-check"/></svg>A person clears facts before agents believe them</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Every conversation kept whole, not summarised away</li>
           <li><svg class="ic"><use href="#i-check"/></svg>Sealed history: prove nothing was altered</li>
           <li><svg class="ic"><use href="#i-check"/></svg>Yours to take to any vendor, any day</li>
           <li><svg class="ic"><use href="#i-check"/></svg>Measured in incidents avoided and dollars</li>
@@ -784,8 +810,8 @@ footer{border-top:1px solid var(--line2);padding:42px 0;color:var(--faint);font-
     <div class="reveal"><span class="kicker">The part nobody else has</span>
     <h2 class="h2">Open any fact.<br>Get the whole story.</h2>
     <p class="lead">Who taught it, in which conversation, every change since, and which agents have read it —
-      with times. When an agent says something wrong, you find the source in seconds instead of a week.
-      Open the row:</p></div>
+      with times. The conversation is stored whole, so you can open it and read the exact exchange the fact came
+      from. When an agent says something wrong, you find the source in seconds instead of a week. Open the row:</p></div>
     <div class="tracebox reveal">
       <div class="tracehead">MEMORY · sample deployment · select the row</div>
       <button class="trow" id="trow" aria-expanded="false" aria-controls="tdrawer">
